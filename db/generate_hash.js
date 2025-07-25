@@ -1,9 +1,9 @@
 // bcryptハッシュ化パスワード生成スクリプト
-// パスワード "TOYOqq01" をハッシュ化します
+// パスワード "TOYOdt01" をハッシュ化します
 
 const bcrypt = require('bcrypt');
 
-const password = 'TOYOqq01';
+const password = 'TOYOdt01';
 const saltRounds = 12;
 
 async function generateHash() {
