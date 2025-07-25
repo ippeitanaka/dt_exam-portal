@@ -19,7 +19,6 @@ INSERT INTO admins (username, password, created_at) VALUES
 ON CONFLICT (username) DO UPDATE SET 
 password = EXCLUDED.password,
 created_at = NOW();
-created_at = NOW();
 
 -- 確認用クエリ
 -- 登録されたユーザーを確認する
