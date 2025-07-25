@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import StudentDashboard from "@/components/student-dashboard"
 import { getStudentScoresWithStats } from "@/lib/ranking-utils"
 import LogoutButton from "@/components/logout-button"
-import { Heart, Loader2 } from "lucide-react"
+import { Loader2 } from "lucide-react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { DentalMascot } from "@/components/paramedic-mascot"
 
@@ -85,9 +85,6 @@ export default function DashboardPage({ params }: { params: { id: string } }) {
               <div className="flex items-center gap-2">
                 <div className="relative">
                   <DentalMascot width={28} height={28} type="default" />
-                  <div className="absolute -top-1 -right-1">
-                    <Heart size={12} fill="#f43f5e" className="text-accent" />
-                  </div>
                 </div>
                 <div>
                   <CardTitle className="text-2xl">マイページ</CardTitle>

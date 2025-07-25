@@ -6,7 +6,7 @@ import AdminLoginForm from "@/components/admin-login-form"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent } from "@/components/ui/card"
 import { motion } from "framer-motion"
-import { Stethoscope, Heart } from "lucide-react"
+import { Stethoscope } from "lucide-react"
 import { DentalMascot } from "@/components/paramedic-mascot"
 
 export default function Home() {
@@ -35,13 +35,6 @@ export default function Home() {
               className="relative"
             >
               <DentalMascot width={80} height={80} type="default" />
-              <motion.div
-                animate={{ scale: [1, 1.2, 1] }}
-                transition={{ duration: 1.5, repeat: Number.POSITIVE_INFINITY }}
-                className="absolute -top-1 -right-1"
-              >
-                <Heart size={20} fill="#f43f5e" className="text-accent" />
-              </motion.div>
             </motion.div>
           </div>
           <h1 className="text-3xl font-bold text-gray-900">歯科技工士学科</h1>
