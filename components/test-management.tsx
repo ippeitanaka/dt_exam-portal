@@ -6,7 +6,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react"
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { DeleteTestDialog } from "./delete-test-dialog"
 
 export default function TestManagement() {
@@ -19,55 +18,26 @@ export default function TestManagement() {
     setError(null)
 
     try {
-      const supabase = createClientComponentClient()
-      // テスト一覧を取得（テスト名、日付、および各テストの結果数）
+      console.log("テスト一覧取得API呼び出し開始...")
       
-      console.log("テスト一覧取得を開始...")
+      const response = await fetch("/api/test-management")
+      const result = await response.json()
       
-      // 直接SQLクエリでtest_scoresから全データを取得
-      const { data: testData, error: testError } = await supabase
-        .from("test_scores")
-        .select("test_name, test_date")
-        .order("test_date", { ascending: false })
-      
-      console.log("test_scores データ取得結果:", testData, testError)
+      console.log("テスト管理API結果:", result)
 
-      if (testError) {
-        throw testError
+      if (!response.ok) {
+        throw new Error(result.error || "テスト一覧の取得に失敗しました")
       }
 
-      if (!testData || testData.length === 0) {
-        console.log("テストデータが見つかりません")
-        setTests([])
-        return
+      if (result.success) {
+        setTests(result.tests || [])
+        console.log(`${result.tests?.length || 0} 件のテストが見つかりました`)
+      } else {
+        throw new Error(result.error || "APIエラー")
       }
-
-      // JavaScriptでデータをグループ化して集計
-      const testMap = new Map()
-      
-      testData.forEach((item: any) => {
-        const key = `${item.test_name}|${item.test_date}`
-        if (testMap.has(key)) {
-          testMap.set(key, {
-            ...testMap.get(key),
-            count: testMap.get(key).count + 1
-          })
-        } else {
-          testMap.set(key, {
-            test_name: item.test_name,
-            test_date: item.test_date,
-            count: 1
-          })
-        }
-      })
-
-      const aggregatedData = Array.from(testMap.values())
-      console.log("集計されたデータ:", aggregatedData)
-      
-      setTests(aggregatedData)
     } catch (err) {
       console.error("テスト一覧取得エラー:", err)
-      setError("テスト一覧の取得に失敗しました")
+      setError(err instanceof Error ? err.message : "テスト一覧の取得に失敗しました")
     } finally {
       setLoading(false)
     }
