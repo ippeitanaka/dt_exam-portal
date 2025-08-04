@@ -1,5 +1,8 @@
 "use client"
 
+// 動的レンダリングを強制（環境変数が必要なため）
+export const dynamic = 'force-dynamic'
+
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,7 +17,6 @@ export default function StudentPasswordTool() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [studentData, setStudentData] = useState<any>(null)
-  const supabase = createClientComponentClient()
 
   const searchStudent = async () => {
     if (!studentId) {
@@ -27,6 +29,7 @@ export default function StudentPasswordTool() {
     setStudentData(null)
 
     try {
+      const supabase = createClientComponentClient()
       // 学生データを検索
       const { data, error } = await supabase.from("students").select("*").eq("student_id", studentId).single()
 

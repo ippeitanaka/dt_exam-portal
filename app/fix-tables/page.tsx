@@ -1,5 +1,8 @@
 "use client"
 
+// 動的レンダリングを強制（環境変数が必要なため）
+export const dynamic = 'force-dynamic'
+
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,7 +15,6 @@ export default function FixTables() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [result, setResult] = useState<any>(null)
-  const supabase = createClientComponentClient()
 
   const createTables = async () => {
     setLoading(true)
@@ -20,6 +22,7 @@ export default function FixTables() {
     setSuccess(false)
 
     try {
+      const supabase = createClientComponentClient()
       // テーブルを削除して再作成
       const { data, error } = await supabase.rpc("recreate_student_tables")
 

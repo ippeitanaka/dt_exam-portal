@@ -13,13 +13,13 @@ export default function TestManagement() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [tests, setTests] = useState<{ test_name: string; test_date: string; count: number }[]>([])
-  const supabase = createClientComponentClient()
 
   const fetchTests = async () => {
     setLoading(true)
     setError(null)
 
     try {
+      const supabase = createClientComponentClient()
       // テスト一覧を取得（テスト名、日付、および各テストの結果数）
       const { data, error } = await supabase.rpc("get_test_summary")
 

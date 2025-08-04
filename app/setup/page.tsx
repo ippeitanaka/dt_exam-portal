@@ -1,5 +1,8 @@
 "use client"
 
+// 動的レンダリングを強制（環境変数が必要なため）
+export const dynamic = 'force-dynamic'
+
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"

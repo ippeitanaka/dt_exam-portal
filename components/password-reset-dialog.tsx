@@ -31,7 +31,6 @@ export function PasswordResetDialog({ studentId, studentName, onReset }: Passwor
   const [confirmPassword, setConfirmPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const { toast } = useToast()
-  const supabase = createClientComponentClient()
 
   const handleReset = async () => {
     // バリデーション
@@ -49,6 +48,7 @@ export function PasswordResetDialog({ studentId, studentName, onReset }: Passwor
     setError(null)
 
     try {
+      const supabase = createClientComponentClient()
       // パスワードリセット関数を呼び出し
       const { data, error } = await supabase.rpc("reset_student_password", {
         p_student_id: studentId,

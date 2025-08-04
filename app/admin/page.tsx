@@ -1,5 +1,8 @@
 "use client"
 
+// 動的レンダリングを強制（環境変数が必要なため）
+export const dynamic = 'force-dynamic'
+
 import type React from "react"
 
 import { useState, useEffect } from "react"
@@ -16,6 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import Link from "next/link"
 import AdminLogin from "@/components/admin-login"
 import TestResultsImport from "@/components/test-results-import"
+import TestResultsImportNew from "@/components/test-results-import-new"
 import TestManagement from "@/components/test-management"
 import { PasswordResetDialog } from "@/components/password-reset-dialog"
 import TestResultsList from "@/components/test-results-list"
@@ -383,10 +387,11 @@ export default function AdminPage() {
         </Card>
 
         <Tabs defaultValue="import" onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="import">学生データインポート</TabsTrigger>
             <TabsTrigger value="scores">成績追加</TabsTrigger>
             <TabsTrigger value="test-results">テスト結果インポート</TabsTrigger>
+            <TabsTrigger value="new-csv-import">新CSVインポート</TabsTrigger>
             <TabsTrigger value="test-management">テスト管理</TabsTrigger>
             <TabsTrigger value="students">学生一覧</TabsTrigger>
             <TabsTrigger value="results">成績一覧</TabsTrigger>
@@ -516,6 +521,10 @@ export default function AdminPage() {
 
           <TabsContent value="test-results" className="mt-4">
             <TestResultsImport />
+          </TabsContent>
+
+          <TabsContent value="new-csv-import" className="mt-4">
+            <TestResultsImportNew />
           </TabsContent>
 
           <TabsContent value="test-management" className="mt-4">
