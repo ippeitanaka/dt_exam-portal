@@ -1,38 +1,41 @@
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import { createClient } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
+
+// 管理者用のSupabaseクライアント（RLSをバイパス）
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 export async function GET() {
   console.log("テストAPI開始")
   
   try {
-    const supabase = createRouteHandlerClient({ cookies })
-    
-    // 基本的な接続テスト
+    // 管理者権限でテスト
     console.log("Supabase接続テスト開始...")
     
     // test_scoresテーブルの存在確認
-    const { data: testData, error: testError } = await supabase
+    const { count: testCount, error: testError } = await supabaseAdmin
       .from("test_scores")
-      .select("count(*)")
-      .single()
+      .select("*", { count: "exact", head: true })
     
-    console.log("test_scores確認結果:", testData, testError)
+    console.log("test_scores確認結果:", testCount, testError)
     
     // studentsテーブルの存在確認
-    const { data: studentData, error: studentError } = await supabase
+    const { count: studentCount, error: studentError } = await supabaseAdmin
       .from("students")
-      .select("count(*)")
-      .single()
+      .select("*", { count: "exact", head: true })
     
-    console.log("students確認結果:", studentData, studentError)
+    console.log("students確認結果:", studentCount, studentError)
     
     return NextResponse.json({
       success: true,
       message: "テスト完了",
       tables: {
-        test_scores: { data: testData, error: testError?.message },
-        students: { data: studentData, error: studentError?.message }
+        test_scores: { count: testCount, error: testError?.message },
+        students: { count: studentCount, error: studentError?.message }
       }
     })
     
@@ -52,7 +55,7 @@ export async function POST(request: Request) {
   console.log("最小CSVインポートAPI開始")
   
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    // 管理者権限でテスト
     const formData = await request.formData()
     const csvFile = formData.get("file") as File
     const testName = formData.get("testName") as string
@@ -113,7 +116,7 @@ export async function POST(request: Request) {
     
     // 学生レコードを先に作成
     console.log("学生レコード作成/確認中...")
-    const { data: existingStudent, error: checkError } = await supabase
+    const { data: existingStudent, error: checkError } = await supabaseAdmin
       .from("students")
       .select("student_id")
       .eq("student_id", testRecord.student_id)
@@ -123,7 +126,7 @@ export async function POST(request: Request) {
     
     if (!existingStudent) {
       console.log("学生レコード新規作成中...")
-      const { error: createStudentError } = await supabase
+      const { error: createStudentError } = await supabaseAdmin
         .from("students")
         .insert({
           student_id: testRecord.student_id,
@@ -146,7 +149,7 @@ export async function POST(request: Request) {
     
     // テストスコア挿入
     console.log("テストスコア挿入中...")
-    const { data: insertedData, error: insertError } = await supabase
+    const { data: insertedData, error: insertError } = await supabaseAdmin
       .from("test_scores")
       .insert(testRecord)
       .select()

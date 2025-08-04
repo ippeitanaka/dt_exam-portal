@@ -1,12 +1,19 @@
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import { createClient } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
+
+// 管理者用のSupabaseクライアント（RLSをバイパス）
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 export async function POST(request: Request) {
   console.log("CSVインポートAPI開始")
   
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    // 管理者権限でデータ操作
     const formData = await request.formData()
     const csvFile = formData.get("file") as File
     const testName = formData.get("testName") as string
@@ -85,7 +92,7 @@ export async function POST(request: Request) {
 
         // 学生がstudentsテーブルに存在するか確認
         console.log(`学生ID ${studentId} の存在確認中...`)
-        const { data: studentExists, error: studentError } = await supabase
+        const { data: studentExists, error: studentError } = await supabaseAdmin
           .from("students")
           .select("student_id")
           .eq("student_id", studentId)
@@ -104,7 +111,7 @@ export async function POST(request: Request) {
         if (!studentExists) {
           // 学生が存在しない場合は作成
           console.log(`学生ID ${studentId} を新規作成中...`)
-          const { error: createStudentError } = await supabase
+          const { error: createStudentError } = await supabaseAdmin
             .from("students")
             .insert({
               student_id: studentId,
@@ -157,7 +164,7 @@ export async function POST(request: Request) {
         for (const record of batchData) {
           console.log(`重複チェック: 学生ID=${record.student_id}, テスト=${record.test_name}, 日付=${record.test_date}`)
           
-          const { data: existingData, error: checkError } = await supabase
+          const { data: existingData, error: checkError } = await supabaseAdmin
             .from("test_scores")
             .select("id")
             .eq("student_id", record.student_id)
@@ -187,7 +194,7 @@ export async function POST(request: Request) {
           console.log("データベースに挿入開始...")
           console.log("挿入データ:", JSON.stringify(newRecords, null, 2))
           
-          const { data, error } = await supabase.from("test_scores").insert(newRecords).select()
+          const { data, error } = await supabaseAdmin.from("test_scores").insert(newRecords).select()
 
           if (error) {
             console.error("バッチ挿入エラー:", error)
