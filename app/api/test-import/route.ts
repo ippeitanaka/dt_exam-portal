@@ -3,16 +3,29 @@ import { createClient } from "@supabase/supabase-js"
 import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
 
-// 管理者用のSupabaseクライアント（RLSをバイパス）
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
 export async function GET() {
   console.log("テストAPI開始")
   
   try {
+    // 環境変数の確認
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    
+    console.log("環境変数確認:", {
+      url: supabaseUrl ? "設定済み" : "未設定",
+      serviceKey: supabaseServiceKey ? "設定済み" : "未設定"
+    })
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return NextResponse.json(
+        { error: "環境変数が未設定です", details: { url: !!supabaseUrl, serviceKey: !!supabaseServiceKey } },
+        { status: 500 }
+      )
+    }
+
+    // 管理者用のSupabaseクライアント（RLSをバイパス）
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
+    
     // 管理者権限でテスト
     console.log("Supabase接続テスト開始...")
     
@@ -55,6 +68,20 @@ export async function POST(request: Request) {
   console.log("最小CSVインポートAPI開始")
   
   try {
+    // 環境変数の確認
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return NextResponse.json(
+        { error: "環境変数が未設定です" },
+        { status: 500 }
+      )
+    }
+
+    // 管理者用のSupabaseクライアント
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
+    
     // 管理者権限でテスト
     const formData = await request.formData()
     const csvFile = formData.get("file") as File
