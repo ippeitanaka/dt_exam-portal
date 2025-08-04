@@ -21,50 +21,50 @@ export default function TestManagement() {
     try {
       const supabase = createClientComponentClient()
       // テスト一覧を取得（テスト名、日付、および各テストの結果数）
-      // 関数が使用できない場合は直接クエリを実行
-      let data, error
       
-      try {
-        const result = await supabase.rpc("get_test_summary")
-        data = result.data
-        error = result.error
-      } catch (funcError) {
-        console.log("関数が使用できないため、直接クエリを実行します")
-        // 直接SQLクエリを実行
-        const result = await supabase
-          .from("test_scores")
-          .select("test_name, test_date")
-          .order("test_date", { ascending: false })
-        
-        if (result.error) {
-          throw result.error
-        }
+      console.log("テスト一覧取得を開始...")
+      
+      // 直接SQLクエリでtest_scoresから全データを取得
+      const { data: testData, error: testError } = await supabase
+        .from("test_scores")
+        .select("test_name, test_date")
+        .order("test_date", { ascending: false })
+      
+      console.log("test_scores データ取得結果:", testData, testError)
 
-        // データをグループ化して集計
-        const groupedData = result.data?.reduce((acc: any, curr: any) => {
-          const key = `${curr.test_name}_${curr.test_date}`
-          if (!acc[key]) {
-            acc[key] = {
-              test_name: curr.test_name,
-              test_date: curr.test_date,
-              count: 0
-            }
-          }
-          acc[key].count++
-          return acc
-        }, {})
-
-        data = Object.values(groupedData || {})
-        error = null
+      if (testError) {
+        throw testError
       }
 
-      if (error) throw error
-
-      if (data) {
-        setTests(data)
-      } else {
+      if (!testData || testData.length === 0) {
+        console.log("テストデータが見つかりません")
         setTests([])
+        return
       }
+
+      // JavaScriptでデータをグループ化して集計
+      const testMap = new Map()
+      
+      testData.forEach((item: any) => {
+        const key = `${item.test_name}|${item.test_date}`
+        if (testMap.has(key)) {
+          testMap.set(key, {
+            ...testMap.get(key),
+            count: testMap.get(key).count + 1
+          })
+        } else {
+          testMap.set(key, {
+            test_name: item.test_name,
+            test_date: item.test_date,
+            count: 1
+          })
+        }
+      })
+
+      const aggregatedData = Array.from(testMap.values())
+      console.log("集計されたデータ:", aggregatedData)
+      
+      setTests(aggregatedData)
     } catch (err) {
       console.error("テスト一覧取得エラー:", err)
       setError("テスト一覧の取得に失敗しました")
@@ -100,34 +100,48 @@ export default function TestManagement() {
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         ) : tests.length > 0 ? (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>テスト名</TableHead>
-                  <TableHead>実施日</TableHead>
-                  <TableHead className="text-right">結果数</TableHead>
-                  <TableHead className="text-right">操作</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {tests.map((test) => (
-                  <TableRow key={`${test.test_name}_${test.test_date}`}>
-                    <TableCell>{test.test_name}</TableCell>
-                    <TableCell>{new Date(test.test_date).toLocaleDateString("ja-JP")}</TableCell>
-                    <TableCell className="text-right">{test.count}件</TableCell>
-                    <TableCell className="text-right">
-                      <DeleteTestDialog testName={test.test_name} testDate={test.test_date} onDeleted={fetchTests} />
-                    </TableCell>
+          <div className="space-y-4">
+            {/* デバッグ情報 */}
+            <div className="text-sm text-gray-500">
+              {tests.length} 件のテストが見つかりました
+            </div>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>テスト名</TableHead>
+                    <TableHead>実施日</TableHead>
+                    <TableHead className="text-right">結果数</TableHead>
+                    <TableHead className="text-right">操作</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {tests.map((test) => (
+                    <TableRow key={`${test.test_name}_${test.test_date}`}>
+                      <TableCell>{test.test_name}</TableCell>
+                      <TableCell>{new Date(test.test_date).toLocaleDateString("ja-JP")}</TableCell>
+                      <TableCell className="text-right">{test.count}件</TableCell>
+                      <TableCell className="text-right">
+                        <DeleteTestDialog testName={test.test_name} testDate={test.test_date} onDeleted={fetchTests} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         ) : (
           <Alert>
             <AlertCircle className="h-4 w-4" />
-            <AlertDescription>テストデータがありません</AlertDescription>
+            <AlertDescription>
+              テストデータがありません。
+              <br />
+              「テスト結果インポート」タブでCSVファイルをインポートしてください。
+              <br />
+              <small className="text-gray-500">
+                test_scoresテーブルに {tests.length} 件のデータがあります
+              </small>
+            </AlertDescription>
           </Alert>
         )}
       </CardContent>
