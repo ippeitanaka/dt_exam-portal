@@ -39,47 +39,27 @@ export async function POST(request: Request) {
         // カンマで分割
         const columns = row.split(",").map((col) => col.trim())
 
-        if (columns.length < 11) {
-          errors.push(`行 ${i + 1}: 列が不足しています (${columns.length} 列、11列必要)`)
+        if (columns.length < 3) {
+          errors.push(`行 ${i + 1}: 列が不足しています (${columns.length} 列、最低3列必要)`)
           continue
         }
 
-        // データを抽出
+        // データを抽出（シンプル版）
         const studentId = columns[0]  // 番号（学生ID）
         const name = columns[1]       // 氏名
         const totalScore = parseFloat(columns[2]) || 0  // 得点
-        const management = parseFloat(columns[3]) || 0  // 管理
-        const anatomy = parseFloat(columns[4]) || 0     // 解剖
-        const oralPathology = parseFloat(columns[5]) || 0 // 病口
-        const technology = parseFloat(columns[6]) || 0  // 理工
-        const removable = parseFloat(columns[7]) || 0   // 有床
-        const crown = parseFloat(columns[8]) || 0       // 歯冠
-        const orthodontics = parseFloat(columns[9]) || 0 // 矯正
-        const pediatric = parseFloat(columns[10]) || 0  // 小児
+
+        // 個別科目得点（ある場合のみ）
+        const subject1 = parseFloat(columns[3]) || 0   // 科目1
+        const subject2 = parseFloat(columns[4]) || 0   // 科目2
+        const subject3 = parseFloat(columns[5]) || 0   // 科目3
+        const subject4 = parseFloat(columns[6]) || 0   // 科目4
+        const subject5 = parseFloat(columns[7]) || 0   // 科目5
 
         if (!studentId || !name) {
           errors.push(`行 ${i + 1}: 学生IDまたは氏名が不足しています`)
           continue
         }
-
-        // セクション別得点の計算
-        // section_a: 一般問題（管理 + 解剖 + 理工 + 歯冠）
-        const sectionA = management + anatomy + technology + crown
-        
-        // section_b: 必修問題（病口）
-        const sectionB = oralPathology
-        
-        // section_c: 必修症例問題（有床）
-        const sectionC = removable
-        
-        // section_d: 一般症例問題（矯正 + 小児）
-        const sectionD = orthodontics + pediatric
-        
-        // section_ad: 一般合計（A + D）
-        const sectionAD = sectionA + sectionD
-        
-        // section_bc: 必修合計（B + C）
-        const sectionBC = sectionB + sectionC
 
         // 学生がstudentsテーブルに存在するか確認
         const { data: studentExists, error: studentError } = await supabase
@@ -109,18 +89,18 @@ export async function POST(request: Request) {
           }
         }
 
-        // バッチ処理用のデータを追加
+        // シンプルなデータ構造でバッチ処理用のデータを追加
         batchData.push({
           student_id: studentId,
           name: name,
           test_name: testName,
           test_date: testDate,
-          section_a: sectionA,
-          section_b: sectionB,
-          section_c: sectionC,
-          section_d: sectionD,
-          section_ad: sectionAD,
-          section_bc: sectionBC,
+          section_a: subject1,  // 科目1
+          section_b: subject2,  // 科目2
+          section_c: subject3,  // 科目3
+          section_d: subject4,  // 科目4
+          section_ad: subject5, // 科目5
+          section_bc: 0,        // 未使用
           total_score: totalScore,
           max_score: 400 // デフォルト満点
         })

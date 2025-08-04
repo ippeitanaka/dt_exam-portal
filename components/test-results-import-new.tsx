@@ -178,23 +178,23 @@ export default function TestResultsImportNew() {
         </CardHeader>
         <CardContent>
           <div className="bg-muted p-4 rounded-lg mb-4">
-            <h4 className="font-medium mb-2">CSVフォーマット</h4>
+            <h4 className="font-medium mb-2">CSVフォーマット（シンプル版）</h4>
             <p className="text-sm text-muted-foreground mb-2">
               以下の順序で列を配置してください：
             </p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-              <Badge variant="outline">番号</Badge>
+              <Badge variant="outline">学生ID</Badge>
               <Badge variant="outline">氏名</Badge>
-              <Badge variant="outline">得点</Badge>
-              <Badge variant="outline">管理</Badge>
-              <Badge variant="outline">解剖</Badge>
-              <Badge variant="outline">病口</Badge>
-              <Badge variant="outline">理工</Badge>
-              <Badge variant="outline">有床</Badge>
-              <Badge variant="outline">歯冠</Badge>
-              <Badge variant="outline">矯正</Badge>
-              <Badge variant="outline">小児</Badge>
+              <Badge variant="outline">総得点</Badge>
+              <Badge variant="outline">科目1</Badge>
+              <Badge variant="outline">科目2</Badge>
+              <Badge variant="outline">科目3</Badge>
+              <Badge variant="outline">科目4</Badge>
+              <Badge variant="outline">科目5</Badge>
             </div>
+            <p className="text-xs text-muted-foreground mt-2">
+              ※ 最低「学生ID、氏名、総得点」の3列があれば動作します
+            </p>
           </div>
           <Button 
             onClick={handleDownloadTemplate} 
