@@ -46,9 +46,9 @@ export default function AdminLogin({ onLogin }: { onLogin: () => void }) {
       // Supabaseクライアントの初期化
       const supabase = createClientComponentClient()
 
-      // まず管理者データを取得
+      // まず管理者データを取得（平文パスワードのadminsテーブルを使用）
       const { data: adminData, error: adminError } = await supabase
-        .from("admin_users")
+        .from("admins")
         .select("*")
         .eq("username", username)
 
@@ -63,25 +63,8 @@ export default function AdminLogin({ onLogin }: { onLogin: () => void }) {
 
       const admin = adminData[0]
 
-      // パスワードの検証
-      let authenticated = false
-
-      // 平文パスワードの場合は直接比較
-      if (!admin.password.startsWith("$2a$")) {
-        authenticated = admin.password === password
-      } else {
-        // ハッシュ化されたパスワードの場合はRPCを使用
-        const { data: verifyData, error: verifyError } = await supabase.rpc("verify_password", {
-          stored_hash: admin.password,
-          password: password,
-        })
-
-        if (verifyError) {
-          throw verifyError
-        }
-
-        authenticated = verifyData
-      }
+      // パスワードの検証（平文パスワード）
+      const authenticated = admin.password === password
 
       if (authenticated) {
         // 認証成功

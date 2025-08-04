@@ -21,7 +21,42 @@ export default function TestManagement() {
     try {
       const supabase = createClientComponentClient()
       // テスト一覧を取得（テスト名、日付、および各テストの結果数）
-      const { data, error } = await supabase.rpc("get_test_summary")
+      // 関数が使用できない場合は直接クエリを実行
+      let data, error
+      
+      try {
+        const result = await supabase.rpc("get_test_summary")
+        data = result.data
+        error = result.error
+      } catch (funcError) {
+        console.log("関数が使用できないため、直接クエリを実行します")
+        // 直接SQLクエリを実行
+        const result = await supabase
+          .from("test_scores")
+          .select("test_name, test_date")
+          .order("test_date", { ascending: false })
+        
+        if (result.error) {
+          throw result.error
+        }
+
+        // データをグループ化して集計
+        const groupedData = result.data?.reduce((acc: any, curr: any) => {
+          const key = `${curr.test_name}_${curr.test_date}`
+          if (!acc[key]) {
+            acc[key] = {
+              test_name: curr.test_name,
+              test_date: curr.test_date,
+              count: 0
+            }
+          }
+          acc[key].count++
+          return acc
+        }, {})
+
+        data = Object.values(groupedData || {})
+        error = null
+      }
 
       if (error) throw error
 
