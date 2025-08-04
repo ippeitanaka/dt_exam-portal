@@ -18,7 +18,6 @@ import { AlertCircle, Loader2, FileText, Download, LogOut, User } from "lucide-r
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import Link from "next/link"
 import AdminLogin from "@/components/admin-login"
-import TestResultsImport from "@/components/test-results-import"
 import TestResultsImportNew from "@/components/test-results-import-new"
 import TestManagement from "@/components/test-management"
 import { PasswordResetDialog } from "@/components/password-reset-dialog"
@@ -387,11 +386,10 @@ export default function AdminPage() {
         </Card>
 
         <Tabs defaultValue="import" onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="import">学生データインポート</TabsTrigger>
             <TabsTrigger value="scores">成績追加</TabsTrigger>
-            <TabsTrigger value="test-results">テスト結果インポート</TabsTrigger>
-            <TabsTrigger value="new-csv-import">新CSVインポート</TabsTrigger>
+            <TabsTrigger value="csv-import">テスト結果インポート</TabsTrigger>
             <TabsTrigger value="test-management">テスト管理</TabsTrigger>
             <TabsTrigger value="students">学生一覧</TabsTrigger>
             <TabsTrigger value="results">成績一覧</TabsTrigger>
@@ -519,11 +517,7 @@ export default function AdminPage() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="test-results" className="mt-4">
-            <TestResultsImport />
-          </TabsContent>
-
-          <TabsContent value="new-csv-import" className="mt-4">
+          <TabsContent value="csv-import" className="mt-4">
             <TestResultsImportNew />
           </TabsContent>
 
