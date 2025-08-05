@@ -23,6 +23,15 @@ type TestScore = {
   section_d?: number
   section_ad?: number
   section_bc?: number
+  // 新しい分野構造
+  section_kanri?: number      // 管理
+  section_kaibou?: number     // 解剖
+  section_gakkou?: number     // 顎口
+  section_rikou?: number      // 理工
+  section_yushou?: number     // 有床
+  section_shikan?: number     // 歯冠
+  section_kyousei?: number    // 矯正
+  section_shouni?: number     // 小児
   total_score?: number
 }
 

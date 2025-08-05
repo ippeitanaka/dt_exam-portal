@@ -10,16 +10,20 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Medal, Loader2, AlertCircle, Trophy, Award, Crown } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { getTotalRankings, getTestRankings } from "@/lib/ranking-utils"
+import { getTotalRankings, getTestRankings, getTestAnalytics, TestAnalytics } from "@/lib/ranking-utils"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { motion } from "framer-motion"
+import TestAnalyticsCard from "@/components/test-analytics-card"
+import SectionRankings from "@/components/section-rankings"
+import DeviationRankings from "@/components/deviation-rankings"
 
 export default function RankingPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [totalRankings, setTotalRankings] = useState<any[]>([])
   const [testRankings, setTestRankings] = useState<any[]>([])
-  const [tests, setTests] = useState<{ name: string; date: string }[]>([])
+  const [analytics, setAnalytics] = useState<TestAnalytics | null>(null)
+  const [tests, setTests] = useState<{ test_name: string; test_date: string }[]>([])
   const [selectedTest, setSelectedTest] = useState<string>("")
 
   useEffect(() => {
@@ -52,6 +56,10 @@ export default function RankingPage() {
           // 最新テストのランキングを取得
           const testRankingsData = await getTestRankings(latestTest.test_name, latestTest.test_date)
           setTestRankings(testRankingsData)
+          
+          // 最新テストの分析情報を取得
+          const analyticsData = await getTestAnalytics(latestTest.test_name, latestTest.test_date)
+          setAnalytics(analyticsData)
         }
 
         // 総合ランキングを取得
@@ -76,6 +84,10 @@ export default function RankingPage() {
       const [testName, testDate] = value.split("_")
       const testRankingsData = await getTestRankings(testName, testDate)
       setTestRankings(testRankingsData)
+      
+      // 分析情報を取得
+      const analyticsData = await getTestAnalytics(testName, testDate)
+      setAnalytics(analyticsData)
     } catch (err) {
       console.error("テストランキング取得エラー:", err)
       setError("テストランキングの取得に失敗しました")
@@ -120,17 +132,35 @@ export default function RankingPage() {
         </motion.div>
 
         <Tabs defaultValue="test">
-          <TabsList className="grid w-full grid-cols-2 rounded-xl bg-muted/80">
+          <TabsList className="grid w-full grid-cols-5 rounded-xl bg-muted/80">
             <TabsTrigger value="test" className="rounded-lg data-[state=active]:bg-primary">
               <div className="flex items-center gap-2">
                 <Trophy size={16} />
-                <span>テスト別ランキング</span>
+                <span>総合</span>
+              </div>
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="rounded-lg data-[state=active]:bg-primary">
+              <div className="flex items-center gap-2">
+                <Award size={16} />
+                <span>分析</span>
+              </div>
+            </TabsTrigger>
+            <TabsTrigger value="deviation" className="rounded-lg data-[state=active]:bg-primary">
+              <div className="flex items-center gap-2">
+                <Medal size={16} />
+                <span>偏差値</span>
+              </div>
+            </TabsTrigger>
+            <TabsTrigger value="sections" className="rounded-lg data-[state=active]:bg-primary">
+              <div className="flex items-center gap-2">
+                <Crown size={16} />
+                <span>分野別</span>
               </div>
             </TabsTrigger>
             <TabsTrigger value="total" className="rounded-lg data-[state=active]:bg-primary">
               <div className="flex items-center gap-2">
                 <Award size={16} />
-                <span>総合ランキング</span>
+                <span>総合</span>
               </div>
             </TabsTrigger>
           </TabsList>
@@ -258,6 +288,39 @@ export default function RankingPage() {
                   )}
                 </CardContent>
               </Card>
+            </motion.div>
+          </TabsContent>
+
+          <TabsContent value="analytics" className="mt-4">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+              {selectedTest && (
+                <TestAnalyticsCard 
+                  analytics={analytics} 
+                  testName={selectedTest.split('_')[0]} 
+                />
+              )}
+            </motion.div>
+          </TabsContent>
+
+          <TabsContent value="deviation" className="mt-4">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+              {testRankings.length > 0 && selectedTest && (
+                <DeviationRankings 
+                  testData={testRankings} 
+                  testName={selectedTest.split('_')[0]} 
+                />
+              )}
+            </motion.div>
+          </TabsContent>
+
+          <TabsContent value="sections" className="mt-4">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+              {testRankings.length > 0 && selectedTest && (
+                <SectionRankings 
+                  testData={testRankings} 
+                  testName={selectedTest.split('_')[0]} 
+                />
+              )}
             </motion.div>
           </TabsContent>
 
