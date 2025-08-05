@@ -24,10 +24,10 @@ export default function TestResultsImportNew() {
   const { toast } = useToast()
 
   // CSVテンプレートをダウンロードする関数
-  const handleDownloadTemplate = async (templateType: 'new' | 'legacy' = 'legacy') => {
+  const handleDownloadTemplate = async () => {
     setIsExporting(true)
     try {
-      const response = await fetch(`/api/download-csv-template?type=${templateType === 'new' ? 'testResults' : 'testResultsLegacy'}`)
+      const response = await fetch(`/api/download-csv-template?type=testResults`)
       if (!response.ok) {
         throw new Error("テンプレートのダウンロードに失敗しました")
       }
@@ -36,7 +36,7 @@ export default function TestResultsImportNew() {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = templateType === 'new' ? "test_results_template_new.csv" : "test_results_template_legacy.csv"
+      a.download = "test_results_template.csv"
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
@@ -44,7 +44,7 @@ export default function TestResultsImportNew() {
 
       toast({
         title: "成功",
-        description: `CSVテンプレート（${templateType === 'new' ? '新構造' : '従来構造'}）をダウンロードしました`,
+        description: "CSVテンプレートをダウンロードしました",
       })
     } catch (error) {
       console.error("テンプレートダウンロードエラー:", error)
@@ -181,9 +181,9 @@ export default function TestResultsImportNew() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {/* 新しい分野構造テンプレート */}
+            {/* CSVテンプレート */}
             <div className="bg-muted p-4 rounded-lg">
-              <h4 className="font-medium mb-2">📊 新しい分野構造（推奨）</h4>
+              <h4 className="font-medium mb-2">📊 CSVテンプレート</h4>
               <p className="text-sm text-muted-foreground mb-2">
                 以下の順序で列を配置してください：
               </p>
@@ -206,10 +206,10 @@ export default function TestResultsImportNew() {
                 <Badge variant="outline">満点</Badge>
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                ※ 分野別得点を正確に記録できます
+                ※ 80問・100問両パターンに対応、分野別得点を正確に記録
               </p>
               <Button 
-                onClick={() => handleDownloadTemplate('new')} 
+                onClick={() => handleDownloadTemplate()} 
                 disabled={isExporting}
                 className="w-full sm:w-auto mt-2"
                 variant="default"
@@ -219,39 +219,7 @@ export default function TestResultsImportNew() {
                 ) : (
                   <Download className="h-4 w-4 mr-2" />
                 )}
-                新分野構造テンプレートをダウンロード
-              </Button>
-            </div>
-
-            {/* 旧構造テンプレート */}
-            <div className="bg-muted/50 p-4 rounded-lg">
-              <h4 className="font-medium mb-2">📚 従来のA/B/C/D構造（互換用）</h4>
-              <p className="text-sm text-muted-foreground mb-2">
-                以下の順序で列を配置してください：
-              </p>
-              <div className="grid grid-cols-2 md:grid-cols-6 gap-2 text-xs">
-                <Badge variant="secondary">学生ID</Badge>
-                <Badge variant="secondary">氏名</Badge>
-                <Badge variant="secondary">総得点</Badge>
-                <Badge variant="outline">A問題</Badge>
-                <Badge variant="outline">B問題</Badge>
-                <Badge variant="outline">C問題</Badge>
-              </div>
-              <p className="text-xs text-muted-foreground mt-2">
-                ※ 最低「学生ID、氏名、総得点」の3列があれば動作します
-              </p>
-              <Button 
-                onClick={() => handleDownloadTemplate('legacy')} 
-                disabled={isExporting}
-                className="w-full sm:w-auto mt-2"
-                variant="outline"
-              >
-                {isExporting ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Download className="h-4 w-4 mr-2" />
-                )}
-                従来構造テンプレートをダウンロード
+                CSVテンプレートをダウンロード
               </Button>
             </div>
           </div>
