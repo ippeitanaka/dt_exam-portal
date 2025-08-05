@@ -6,12 +6,14 @@ export type TestScore = {
   name?: string // name列を追加
   test_name: string
   test_date: string
-  section_a: number
-  section_b: number
-  section_c: number
-  section_d: number
-  section_ad: number
-  section_bc: number
+  section_kanri: number
+  section_kaibou: number
+  section_gakkou: number
+  section_rikou: number
+  section_yushou: number
+  section_shikan: number
+  section_kyousei: number
+  section_shouni: number
   total_score: number
   created_at: string
   rank?: number
@@ -19,23 +21,27 @@ export type TestScore = {
 
 // TestScoreWithStats型にavg_rankプロパティを追加
 export type TestScoreWithStats = TestScore & {
-  avg_section_a: number
-  avg_section_b: number
-  avg_section_c: number
-  avg_section_d: number
-  avg_section_ad: number
-  avg_section_bc: number
+  avg_section_kanri: number
+  avg_section_kaibou: number
+  avg_section_gakkou: number
+  avg_section_rikou: number
+  avg_section_yushou: number
+  avg_section_shikan: number
+  avg_section_kyousei: number
+  avg_section_shouni: number
   avg_total_score: number
   rank: number
   total_rank: number
   avg_rank?: number
   previous_scores?: {
-    section_a_change: number
-    section_b_change: number
-    section_c_change: number
-    section_d_change: number
-    section_ad_change: number
-    section_bc_change: number
+    section_kanri_change: number
+    section_kaibou_change: number
+    section_gakkou_change: number
+    section_rikou_change: number
+    section_yushou_change: number
+    section_shikan_change: number
+    section_kyousei_change: number
+    section_shouni_change: number
     total_score_change: number
   }
 }
@@ -85,18 +91,24 @@ export async function getStudentScoresWithStats(studentId: string): Promise<Test
       return []
     }
 
-    console.log(`Found ${studentScores.length} scores for student ${studentId}`)
+    // 3. 成績データがない場合は早期リターン
+    if (!studentScores || studentScores.length === 0) {
+      console.log(`No scores found for student ${studentId}, returning empty array`)
+      return []
+    }
 
     // 2. 各テストの平均点を計算
     const testAverages: Record<
       string,
       {
-        avg_section_a: number
-        avg_section_b: number
-        avg_section_c: number
-        avg_section_d: number
-        avg_section_ad: number
-        avg_section_bc: number
+        avg_section_kanri: number
+        avg_section_kaibou: number
+        avg_section_gakkou: number
+        avg_section_rikou: number
+        avg_section_yushou: number
+        avg_section_shikan: number
+        avg_section_kyousei: number
+        avg_section_shouni: number
         avg_total_score: number
       }
     > = {}
@@ -154,9 +166,9 @@ export async function getStudentScoresWithStats(studentId: string): Promise<Test
       }
     }
 
-    // 4. 総合順位を計算
-    let totalRank = 0
-    let avgRank = 0
+    // 4. 総合順位を計算（エラーハンドリング強化）
+    let totalRank = null
+    let avgRank = null
     try {
       console.log(`Getting total rank for student ${studentId}`)
 
@@ -166,12 +178,14 @@ export async function getStudentScoresWithStats(studentId: string): Promise<Test
 
       if (totalRankError) {
         console.error("総合順位取得エラー:", totalRankError)
-      } else if (totalRankData && totalRankData.length > 0) {
+        // RPC関数エラーでも処理を続行
+      } else if (totalRankData && totalRankData.length > 0 && totalRankData[0].rank) {
         totalRank = totalRankData[0].rank
-        avgRank = totalRankData[0].avg_rank
+        // avg_rankは現在の関数では返されないため、nullのまま
       }
     } catch (err) {
       console.error(`Error getting total rank for student ${studentId}:`, err)
+      // エラーでも処理を続行
     }
 
     // 5. 前回のテスト結果との比較
@@ -200,12 +214,14 @@ export async function getStudentScoresWithStats(studentId: string): Promise<Test
       const prevScore = previousScores[score.test_name]
       const previousScoreData = prevScore
         ? {
-            section_a_change: (score.section_a || 0) - (prevScore.section_a || 0),
-            section_b_change: (score.section_b || 0) - (prevScore.section_b || 0),
-            section_c_change: (score.section_c || 0) - (prevScore.section_c || 0),
-            section_d_change: (score.section_d || 0) - (prevScore.section_d || 0),
-            section_ad_change: (score.section_ad || 0) - (prevScore.section_ad || 0),
-            section_bc_change: (score.section_bc || 0) - (prevScore.section_bc || 0),
+            section_kanri_change: (score.section_kanri || 0) - (prevScore.section_kanri || 0),
+            section_kaibou_change: (score.section_kaibou || 0) - (prevScore.section_kaibou || 0),
+            section_gakkou_change: (score.section_gakkou || 0) - (prevScore.section_gakkou || 0),
+            section_rikou_change: (score.section_rikou || 0) - (prevScore.section_rikou || 0),
+            section_yushou_change: (score.section_yushou || 0) - (prevScore.section_yushou || 0),
+            section_shikan_change: (score.section_shikan || 0) - (prevScore.section_shikan || 0),
+            section_kyousei_change: (score.section_kyousei || 0) - (prevScore.section_kyousei || 0),
+            section_shouni_change: (score.section_shouni || 0) - (prevScore.section_shouni || 0),
             total_score_change: (score.total_score || 0) - (prevScore.total_score || 0),
           }
         : undefined

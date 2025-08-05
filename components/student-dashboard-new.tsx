@@ -41,6 +41,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import type { TestScoreWithStats } from "@/lib/ranking-utils"
 import { motion } from "framer-motion"
+import { DentalMascot } from "@/components/paramedic-mascot"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 type Student = {
   id: string
@@ -48,28 +50,14 @@ type Student = {
   student_id: string
 }
 
-// 問題領域の表示名マッピング（新しいスキーマ対応）
+// 問題領域の表示名マッピング
 const sectionNames = {
-  section_kanri: "管理",
-  section_kaibou: "解剖",
-  section_gakkou: "顎口",
-  section_rikou: "理工",
-  section_yushou: "有床",
-  section_shikan: "歯冠",
-  section_kyousei: "矯正",
-  section_shouni: "小児",
-}
-
-// 各科目の問題数
-const sectionQuestionCounts = {
-  section_kanri: 9,
-  section_kaibou: 12,
-  section_gakkou: 9,
-  section_rikou: 16,
-  section_yushou: 18,
-  section_shikan: 18,
-  section_kyousei: 9,
-  section_shouni: 9,
+  section_a: "A問題（一般）",
+  section_b: "B問題（必修）",
+  section_c: "C問題（必修症例）",
+  section_d: "D問題（一般症例）",
+  section_ad: "AD問題（一般合計）",
+  section_bc: "BC問題（必修合計）",
 }
 
 // アチーブメントの定義
@@ -77,7 +65,7 @@ const achievements = [
   {
     id: 1,
     name: "合格ライン突破",
-    description: "60点以上を獲得",
+    description: "合格ラインを超えました",
     icon: <Award className="h-5 w-5" />,
     color: "bg-green-500",
   },
@@ -90,8 +78,8 @@ const achievements = [
   },
   {
     id: 3,
-    name: "連続高得点",
-    description: "3回連続で高得点を獲得",
+    name: "連続合格",
+    description: "3回連続で合格ラインを超えました",
     icon: <Activity className="h-5 w-5" />,
     color: "bg-purple-500",
   },
@@ -139,113 +127,23 @@ export default function StudentDashboard({
   const [aiAnalysis, setAiAnalysis] = useState<string>("")
   const [analysisLoading, setAnalysisLoading] = useState(false)
 
-  // 成績データがない場合の表示を改善
+  // 成績データがない場合
   if (scores.length === 0) {
     return (
-      <div className="space-y-6">
-        <Card className="card-decorated bg-gradient-to-br from-white to-blue-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-blue-500" />
-              成績データについて
-            </CardTitle>
-            <CardDescription>現在の成績情報</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Alert className="bg-blue-50 border-blue-200">
-              <AlertCircle className="h-4 w-4 text-blue-600" />
-              <AlertDescription className="text-blue-800">
-                <div className="space-y-2">
-                  <p><strong>模擬試験の成績データが利用可能になりました！</strong></p>
-                  <p>ページを再読み込みすると、以下の情報が表示されます：</p>
-                  <ul className="list-disc list-inside ml-4 space-y-1">
-                    <li>詳細な成績表と分野別点数</li>
-                    <li>AI による個別学習アドバイス</li>
-                    <li>成績推移グラフとレーダーチャート</li>
-                    <li>クラス内順位と総合順位</li>
-                    <li>学習実績とアチーブメント</li>
-                  </ul>
-                </div>
-              </AlertDescription>
-            </Alert>
-          </CardContent>
-        </Card>
-        
-        <Card className="card-decorated">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-primary" />
-              ダッシュボード機能プレビュー
-            </CardTitle>
-            <CardDescription>利用可能になる機能</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <Activity className="h-5 w-5 text-blue-600" />
-                  <h3 className="font-medium text-blue-900">成績概要</h3>
-                </div>
-                <p className="text-sm text-blue-700">成績推移や統計データを視覚的に確認</p>
-              </div>
-              
-              <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <BookOpen className="h-5 w-5 text-green-600" />
-                  <h3 className="font-medium text-green-900">詳細成績</h3>
-                </div>
-                <p className="text-sm text-green-700">模擬試験の詳細な成績表と履歴</p>
-              </div>
-              
-              <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <Brain className="h-5 w-5 text-purple-600" />
-                  <h3 className="font-medium text-purple-900">AI分析</h3>
-                </div>
-                <p className="text-sm text-purple-700">個別学習アドバイスと成績分析</p>
-              </div>
-              
-              <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <Medal className="h-5 w-5 text-yellow-600" />
-                  <h3 className="font-medium text-yellow-900">順位情報</h3>
-                </div>
-                <p className="text-sm text-yellow-700">クラス内順位と総合順位の確認</p>
-              </div>
-              
-              <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <Award className="h-5 w-5 text-red-600" />
-                  <h3 className="font-medium text-red-900">実績</h3>
-                </div>
-                <p className="text-sm text-red-700">学習実績とアチーブメント獲得</p>
-              </div>
-              
-              <div className="p-4 bg-indigo-50 rounded-lg border border-indigo-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <Target className="h-5 w-5 text-indigo-600" />
-                  <h3 className="font-medium text-indigo-900">目標管理</h3>
-                </div>
-                <p className="text-sm text-indigo-700">合格ラインとの比較と対策</p>
-              </div>
-            </div>
-            
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-              <h4 className="font-medium text-gray-900 mb-2">お知らせ</h4>
-              <p className="text-sm text-gray-700">
-                模擬試験の結果データが利用可能です。ページを再読み込みしてご確認ください。
-              </p>
-              <Button 
-                onClick={() => window.location.reload()} 
-                className="mt-3"
-                size="sm"
-              >
-                ページを再読み込み
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <Card className="card-decorated">
+        <CardHeader>
+          <CardTitle>成績データ</CardTitle>
+          <CardDescription>現在の成績情報</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              まだ成績データがありません。模擬試験を受けると、ここに結果が表示されます。
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
     )
   }
 
@@ -288,19 +186,19 @@ export default function StudentDashboard({
 
   const trend = getTrend()
 
-  // 合格ラインに対する状況（60点基準）
+  // 合格ラインに対する状況（新しい判定基準）
   const isPassingScore = (score: TestScoreWithStats) => {
-    return (score.total_score || 0) >= 60
+    return (score.section_ad || 0) >= 132 && (score.section_bc || 0) >= 44
   }
 
   const passStatus = isPassingScore(latestScore)
     ? {
         status: "pass",
-        message: "現在の成績は合格ライン（60点）を超えています。このまま維持しましょう！",
+        message: "現在の成績は合格ラインを超えています。このまま維持しましょう！",
       }
     : {
         status: "fail",
-        message: `合格には、あと${Math.max(0, 60 - (latestScore.total_score || 0))}点必要です。もう少し頑張りましょう！`,
+        message: `合格には、AD問題（一般合計）が${Math.max(0, 132 - (latestScore.section_ad || 0))}点、BC問題（必修合計）が${Math.max(0, 44 - (latestScore.section_bc || 0))}点足りません。もう少し頑張りましょう！`,
       }
 
   // 実績の達成回数を計算
@@ -309,17 +207,17 @@ export default function StudentDashboard({
     const passingCount = scores.filter((score) => isPassingScore(score)).length
 
     // トップ10入り回数
-    const top10Count = scores.filter((score) => (score.rank || 999) <= 10).length
+    const top10Count = scores.filter((score) => score.rank <= 10).length
 
-    // 連続高得点回数（最大の連続回数を計算）
-    let maxConsecutiveHigh = 0
+    // 連続合格回数（最大の連続回数を計算）
+    let maxConsecutivePassing = 0
     let currentConsecutive = 0
     const sortedByDate = [...scores].sort((a, b) => new Date(a.test_date).getTime() - new Date(b.test_date).getTime())
 
     sortedByDate.forEach((score) => {
-      if ((score.total_score || 0) >= 70) {
+      if (isPassingScore(score)) {
         currentConsecutive++
-        maxConsecutiveHigh = Math.max(maxConsecutiveHigh, Math.floor(currentConsecutive / 3))
+        maxConsecutivePassing = Math.max(maxConsecutivePassing, Math.floor(currentConsecutive / 3))
       } else {
         currentConsecutive = 0
       }
@@ -327,17 +225,13 @@ export default function StudentDashboard({
 
     // 学習マスター回数（全分野で平均以上）
     const masterCount = scores.filter((score) =>
-      Object.keys(sectionNames).every((section) => {
-        const scoreValue = (score as any)[section] || 0
-        const avgValue = (score as any)[`avg_${section}`] || 0
-        return scoreValue >= avgValue
-      }),
+      Object.keys(sectionNames).every((section) => (score as any)[section] > (score as any)[`avg_${section}`]),
     ).length
 
     return {
       passingCount,
       top10Count,
-      consecutiveHighCount: maxConsecutiveHigh,
+      consecutivePassingCount: maxConsecutivePassing,
       masterCount,
     }
   }
@@ -348,7 +242,7 @@ export default function StudentDashboard({
   const totalAchievements =
     achievementCounts.passingCount +
     achievementCounts.top10Count +
-    achievementCounts.consecutiveHighCount +
+    achievementCounts.consecutivePassingCount +
     achievementCounts.masterCount
 
   const studyLevel = Math.max(1, totalAchievements)
@@ -374,52 +268,40 @@ export default function StudentDashboard({
   // レーダーチャートのデータ
   const radarData = [
     {
-      subject: "管理",
-      score: latestScore.section_kanri || 0,
-      average: latestScore.avg_section_kanri || 0,
-      fullMark: 9,
+      subject: "A問題\n（一般）",
+      score: latestScore.section_a || 0,
+      average: latestScore.avg_section_a || 0,
+      fullMark: 50,
     },
     {
-      subject: "解剖",
-      score: latestScore.section_kaibou || 0,
-      average: latestScore.avg_section_kaibou || 0,
-      fullMark: 12,
+      subject: "B問題\n（必修）",
+      score: latestScore.section_b || 0,
+      average: latestScore.avg_section_b || 0,
+      fullMark: 50,
     },
     {
-      subject: "顎口",
-      score: latestScore.section_gakkou || 0,
-      average: latestScore.avg_section_gakkou || 0,
-      fullMark: 9,
+      subject: "C問題\n（必修症例）",
+      score: latestScore.section_c || 0,
+      average: latestScore.avg_section_c || 0,
+      fullMark: 50,
     },
     {
-      subject: "理工",
-      score: latestScore.section_rikou || 0,
-      average: latestScore.avg_section_rikou || 0,
-      fullMark: 16,
+      subject: "D問題\n（一般症例）",
+      score: latestScore.section_d || 0,
+      average: latestScore.avg_section_d || 0,
+      fullMark: 50,
     },
     {
-      subject: "有床",
-      score: latestScore.section_yushou || 0,
-      average: latestScore.avg_section_yushou || 0,
-      fullMark: 18,
+      subject: "AD問題\n（一般合計）",
+      score: latestScore.section_ad || 0,
+      average: latestScore.avg_section_ad || 0,
+      fullMark: 150,
     },
     {
-      subject: "歯冠",
-      score: latestScore.section_shikan || 0,
-      average: latestScore.avg_section_shikan || 0,
-      fullMark: 18,
-    },
-    {
-      subject: "矯正",
-      score: latestScore.section_kyousei || 0,
-      average: latestScore.avg_section_kyousei || 0,
-      fullMark: 9,
-    },
-    {
-      subject: "小児",
-      score: latestScore.section_shouni || 0,
-      average: latestScore.avg_section_shouni || 0,
-      fullMark: 9,
+      subject: "BC問題\n（必修合計）",
+      score: latestScore.section_bc || 0,
+      average: latestScore.avg_section_bc || 0,
+      fullMark: 50,
     },
   ]
 
@@ -492,8 +374,19 @@ export default function StudentDashboard({
                   <CardContent className="pt-6">
                     <div className="text-center">
                       <p className="text-sm font-medium text-gray-500">最新の点数</p>
-                      <div className="flex items-center justify-center mt-1">
-                        <p className="text-3xl font-bold">{latestScore.total_score || 0}点</p>
+                      <div className="flex flex-col items-center justify-center mt-1 gap-3">
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="flex flex-col">
+                            <span className="font-medium text-primary">AD問題（一般）</span>
+                            <span className="text-2xl font-bold">{latestScore.section_ad || 0}点</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="flex flex-col">
+                            <span className="font-medium text-secondary">BC問題（必修）</span>
+                            <span className="text-2xl font-bold">{latestScore.section_bc || 0}点</span>
+                          </div>
+                        </div>
                       </div>
                       <div className="mt-2">
                         <span
@@ -513,15 +406,17 @@ export default function StudentDashboard({
                 <Card className="overflow-hidden border-2 border-accent/20 bg-gradient-to-br from-white to-pink-50">
                   <CardContent className="pt-6">
                     <div className="text-center">
-                      <p className="text-sm font-medium text-gray-500">順位</p>
+                      <p className="text-sm font-medium text-gray-500">総合順位</p>
                       <div className="flex items-center justify-center mt-1">
                         <Medal className="h-5 w-5 text-accent mr-1" />
-                        <p className="text-3xl font-bold">{latestScore.rank || "-"}位</p>
+                        <p className="text-3xl font-bold">{latestScore.total_rank || "-"}位</p>
                       </div>
                       <div className="mt-2">
-                        <span className="text-xs text-muted-foreground">
-                          最新テスト順位
-                        </span>
+                        {latestScore.avg_rank !== undefined && (
+                          <span className="text-xs text-muted-foreground">
+                            平均順位: {latestScore.avg_rank.toFixed(1)}位
+                          </span>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -533,7 +428,7 @@ export default function StudentDashboard({
                   <LineChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis dataKey="date" stroke="#888" fontSize={12} />
-                    <YAxis domain={[0, 100]} stroke="#888" fontSize={12} />
+                    <YAxis domain={[0, 200]} stroke="#888" fontSize={12} />
                     <Tooltip
                       contentStyle={{
                         backgroundColor: "white",
@@ -590,14 +485,12 @@ export default function StudentDashboard({
                   <TableRow className="bg-muted/30">
                     <TableHead>試験名</TableHead>
                     <TableHead>実施日</TableHead>
-                    <TableHead className="text-right">管理</TableHead>
-                    <TableHead className="text-right">解剖</TableHead>
-                    <TableHead className="text-right">顎口</TableHead>
-                    <TableHead className="text-right">理工</TableHead>
-                    <TableHead className="text-right">有床</TableHead>
-                    <TableHead className="text-right">歯冠</TableHead>
-                    <TableHead className="text-right">矯正</TableHead>
-                    <TableHead className="text-right">小児</TableHead>
+                    <TableHead className="text-right">A問題</TableHead>
+                    <TableHead className="text-right">B問題</TableHead>
+                    <TableHead className="text-right">C問題</TableHead>
+                    <TableHead className="text-right">D問題</TableHead>
+                    <TableHead className="text-right">AD問題</TableHead>
+                    <TableHead className="text-right">BC問題</TableHead>
                     <TableHead className="text-right">合計</TableHead>
                     <TableHead className="text-center">順位</TableHead>
                     <TableHead className="text-center">判定</TableHead>
@@ -605,7 +498,9 @@ export default function StudentDashboard({
                 </TableHeader>
                 <TableBody>
                   {scores.map((score, index) => {
-                    const passed = isPassingScore(score)
+                    const adPassing = (score.section_ad || 0) >= 132
+                    const bcPassing = (score.section_bc || 0) >= 44
+                    const passed = adPassing && bcPassing
 
                     return (
                       <TableRow
@@ -614,14 +509,16 @@ export default function StudentDashboard({
                       >
                         <TableCell className="font-medium">{score.test_name}</TableCell>
                         <TableCell>{new Date(score.test_date).toLocaleDateString("ja-JP")}</TableCell>
-                        <TableCell className="text-right">{score.section_kanri || "-"}</TableCell>
-                        <TableCell className="text-right">{score.section_kaibou || "-"}</TableCell>
-                        <TableCell className="text-right">{score.section_gakkou || "-"}</TableCell>
-                        <TableCell className="text-right">{score.section_rikou || "-"}</TableCell>
-                        <TableCell className="text-right">{score.section_yushou || "-"}</TableCell>
-                        <TableCell className="text-right">{score.section_shikan || "-"}</TableCell>
-                        <TableCell className="text-right">{score.section_kyousei || "-"}</TableCell>
-                        <TableCell className="text-right">{score.section_shouni || "-"}</TableCell>
+                        <TableCell className="text-right">{score.section_a || "-"}</TableCell>
+                        <TableCell className="text-right">{score.section_b || "-"}</TableCell>
+                        <TableCell className="text-right">{score.section_c || "-"}</TableCell>
+                        <TableCell className="text-right">{score.section_d || "-"}</TableCell>
+                        <TableCell className={`text-right font-medium ${adPassing ? "bg-green-50 text-green-700" : ""}`}>
+                          {score.section_ad || "-"}
+                        </TableCell>
+                        <TableCell className={`text-right font-medium ${bcPassing ? "bg-green-50 text-green-700" : ""}`}>
+                          {score.section_bc || "-"}
+                        </TableCell>
                         <TableCell className="text-right font-medium">{score.total_score || "-"}</TableCell>
                         <TableCell className="text-center">
                           <Badge variant="outline" className="bg-blue-50 border-blue-200">
@@ -722,7 +619,7 @@ export default function StudentDashboard({
               <div className="text-center">
                 <div className="text-3xl font-bold text-primary">{latestScore.rank || "-"}位</div>
                 <div className="text-sm text-muted-foreground">
-                  最新テスト順位
+                  {latestScore.total_students || "-"}名中
                 </div>
                 <div className="mt-2 text-sm">{latestScore.test_name}</div>
               </div>

@@ -3,7 +3,7 @@
 // 動的レンダリングを強制（環境変数が必要なため）
 export const dynamic = 'force-dynamic'
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, use } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import StudentDashboard from "@/components/student-dashboard"
@@ -13,7 +13,8 @@ import { Loader2 } from "lucide-react"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { DentalMascot } from "@/components/paramedic-mascot"
 
-export default function DashboardPage({ params }: { params: { id: string } }) {
+export default function DashboardPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params)
   const [student, setStudent] = useState<any>(null)
   const [scores, setScores] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -36,7 +37,7 @@ export default function DashboardPage({ params }: { params: { id: string } }) {
         const studentData = JSON.parse(storedStudent)
 
         // IDが一致するか確認
-        if (studentData.id !== params.id) {
+        if (studentData.id !== resolvedParams.id) {
           console.error("学生IDが一致しません")
           router.push("/")
           return
@@ -56,7 +57,7 @@ export default function DashboardPage({ params }: { params: { id: string } }) {
     }
 
     fetchData()
-  }, [params.id, router])
+  }, [resolvedParams.id, router])
 
   if (loading) {
     return (
