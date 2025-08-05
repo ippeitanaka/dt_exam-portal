@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   LineChart,
   Line,
@@ -38,7 +39,6 @@ import {
   BarChart3,
 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import type { TestScoreWithStats } from "@/lib/ranking-utils"
 import { isPassingScore, getPassingScore, TEST_CONFIGURATIONS } from "@/lib/ranking-utils"
 import { motion } from "framer-motion"
@@ -587,71 +587,172 @@ export default function StudentDashboard({
             <CardDescription>これまでの模擬試験の成績一覧</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/30">
-                    <TableHead>試験名</TableHead>
-                    <TableHead>実施日</TableHead>
-                    <TableHead className="text-center">タイプ</TableHead>
-                    <TableHead className="text-right">管理</TableHead>
-                    <TableHead className="text-right">解剖</TableHead>
-                    <TableHead className="text-right">顎口</TableHead>
-                    <TableHead className="text-right">理工</TableHead>
-                    <TableHead className="text-right">有床</TableHead>
-                    <TableHead className="text-right">歯冠</TableHead>
-                    <TableHead className="text-right">矯正</TableHead>
-                    <TableHead className="text-right">小児</TableHead>
-                    <TableHead className="text-right">合計</TableHead>
-                    <TableHead className="text-center">順位</TableHead>
-                    <TableHead className="text-center">判定</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {scores.map((score, index) => {
-                    const passed = isPassingScore(score)
+            {/* モバイル表示 - カード形式 */}
+            <div className="block md:hidden space-y-4">
+              {scores.map((score, index) => {
+                const passed = isPassingScore(score)
+                const maxScore = TEST_CONFIGURATIONS[score.test_type || '100q'].total_questions
 
-                    return (
-                      <TableRow
-                        key={score.id}
-                        className={`hover:bg-blue-50/50 ${index % 2 === 0 ? "bg-white" : "bg-gray-50/50"}`}
-                      >
-                        <TableCell className="font-medium">{score.test_name}</TableCell>
-                        <TableCell>{new Date(score.test_date).toLocaleDateString("ja-JP")}</TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="outline" className={`text-xs ${score.test_type === '80q' ? 'bg-orange-50 border-orange-200' : 'bg-blue-50 border-blue-200'}`}>
-                            {score.test_type === '80q' ? '80問' : '100問'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">{score.section_kanri || "-"}</TableCell>
-                        <TableCell className="text-right">{score.section_kaibou || "-"}</TableCell>
-                        <TableCell className="text-right">{score.section_gakkou || "-"}</TableCell>
-                        <TableCell className="text-right">{score.section_rikou || "-"}</TableCell>
-                        <TableCell className="text-right">{score.section_yushou || "-"}</TableCell>
-                        <TableCell className="text-right">{score.section_shikan || "-"}</TableCell>
-                        <TableCell className="text-right">{score.section_kyousei || "-"}</TableCell>
-                        <TableCell className="text-right">{score.section_shouni || "-"}</TableCell>
-                        <TableCell className="text-right font-medium">
-                          {score.total_score || "-"}
-                          <span className="text-xs text-gray-400 ml-1">
-                            / {TEST_CONFIGURATIONS[score.test_type || '100q'].total_questions}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant="outline" className="bg-blue-50 border-blue-200">
-                            {score.rank || "-"}位
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-center">
-                          <Badge variant={passed ? "default" : "destructive"} className={passed ? "bg-green-500" : ""}>
-                            {passed ? "合格" : "不合格"}
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
+                return (
+                  <motion.div
+                    key={score.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                  >
+                    <Card className={`overflow-hidden border-l-4 ${passed ? 'border-l-green-500 bg-green-50/30' : 'border-l-red-500 bg-red-50/30'}`}>
+                      <CardContent className="p-4">
+                        {/* ヘッダー情報 */}
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-lg">{score.test_name}</h3>
+                            <p className="text-sm text-muted-foreground">
+                              {new Date(score.test_date).toLocaleDateString("ja-JP")}
+                            </p>
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <Badge variant="outline" className={`text-xs ${score.test_type === '80q' ? 'bg-orange-50 border-orange-200' : 'bg-blue-50 border-blue-200'}`}>
+                              {score.test_type === '80q' ? '80問' : '100問'}
+                            </Badge>
+                            <Badge variant={passed ? "default" : "destructive"} className={passed ? "bg-green-500" : ""}>
+                              {passed ? "合格" : "不合格"}
+                            </Badge>
+                          </div>
+                        </div>
+
+                        {/* 合計点と順位 */}
+                        <div className="grid grid-cols-2 gap-4 mb-4">
+                          <div className="bg-white p-3 rounded-lg border">
+                            <div className="text-center">
+                              <div className="text-2xl font-bold text-primary">
+                                {score.total_score || 0}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                / {maxScore}点
+                              </div>
+                              <div className="text-xs text-muted-foreground mt-1">
+                                合格ライン: {getPassingScore(score.test_type || '100q')}点
+                              </div>
+                            </div>
+                          </div>
+                          <div className="bg-white p-3 rounded-lg border">
+                            <div className="text-center">
+                              <div className="text-2xl font-bold text-primary">
+                                {score.rank || "-"}位
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                順位
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 分野別得点 */}
+                        <div className="space-y-2">
+                          <h4 className="font-medium text-sm text-muted-foreground mb-2">分野別得点</h4>
+                          <div className="grid grid-cols-2 gap-2 text-sm">
+                            {Object.entries(sectionNames).map(([key, name]) => {
+                              const sectionScore = (score as any)[key] || 0
+                              const sectionMax = sectionQuestionCounts[key as keyof typeof sectionQuestionCounts]
+                              const percentage = sectionMax > 0 ? (sectionScore / sectionMax) * 100 : 0
+                              
+                              return (
+                                <div key={key} className="flex justify-between items-center py-1 px-2 bg-white rounded border">
+                                  <span className="font-medium">{name}</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-right">{sectionScore}/{sectionMax}</span>
+                                    <div className="w-8 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                      <div 
+                                        className={`h-full rounded-full transition-all duration-300 ${
+                                          percentage >= 70 ? 'bg-green-500' : 
+                                          percentage >= 50 ? 'bg-yellow-500' : 'bg-red-500'
+                                        }`}
+                                        style={{ width: `${Math.min(percentage, 100)}%` }}
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )
+              })}
+            </div>
+
+            {/* デスクトップ表示 - テーブル形式（改善版） */}
+            <div className="hidden md:block">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/30">
+                      <TableHead className="w-[200px]">試験名</TableHead>
+                      <TableHead className="w-[100px]">実施日</TableHead>
+                      <TableHead className="w-[80px] text-center">タイプ</TableHead>
+                      <TableHead className="w-[60px] text-right">管理</TableHead>
+                      <TableHead className="w-[60px] text-right">解剖</TableHead>
+                      <TableHead className="w-[60px] text-right">顎口</TableHead>
+                      <TableHead className="w-[60px] text-right">理工</TableHead>
+                      <TableHead className="w-[60px] text-right">有床</TableHead>
+                      <TableHead className="w-[60px] text-right">歯冠</TableHead>
+                      <TableHead className="w-[60px] text-right">矯正</TableHead>
+                      <TableHead className="w-[60px] text-right">小児</TableHead>
+                      <TableHead className="w-[100px] text-right">合計</TableHead>
+                      <TableHead className="w-[80px] text-center">順位</TableHead>
+                      <TableHead className="w-[80px] text-center">判定</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {scores.map((score, index) => {
+                      const passed = isPassingScore(score)
+
+                      return (
+                        <TableRow
+                          key={score.id}
+                          className={`hover:bg-blue-50/50 transition-colors ${index % 2 === 0 ? "bg-white" : "bg-gray-50/50"} ${passed ? 'border-l-4 border-l-green-500' : 'border-l-4 border-l-red-500'}`}
+                        >
+                          <TableCell className="font-medium">{score.test_name}</TableCell>
+                          <TableCell className="text-sm">{new Date(score.test_date).toLocaleDateString("ja-JP")}</TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="outline" className={`text-xs ${score.test_type === '80q' ? 'bg-orange-50 border-orange-200' : 'bg-blue-50 border-blue-200'}`}>
+                              {score.test_type === '80q' ? '80問' : '100問'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right text-sm">{score.section_kanri || "-"}</TableCell>
+                          <TableCell className="text-right text-sm">{score.section_kaibou || "-"}</TableCell>
+                          <TableCell className="text-right text-sm">{score.section_gakkou || "-"}</TableCell>
+                          <TableCell className="text-right text-sm">{score.section_rikou || "-"}</TableCell>
+                          <TableCell className="text-right text-sm">{score.section_yushou || "-"}</TableCell>
+                          <TableCell className="text-right text-sm">{score.section_shikan || "-"}</TableCell>
+                          <TableCell className="text-right text-sm">{score.section_kyousei || "-"}</TableCell>
+                          <TableCell className="text-right text-sm">{score.section_shouni || "-"}</TableCell>
+                          <TableCell className="text-right font-medium">
+                            <div className="flex flex-col">
+                              <span className="text-lg font-bold">{score.total_score || "-"}</span>
+                              <span className="text-xs text-gray-400">
+                                / {TEST_CONFIGURATIONS[score.test_type || '100q'].total_questions}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant="outline" className="bg-blue-50 border-blue-200">
+                              {score.rank || "-"}位
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Badge variant={passed ? "default" : "destructive"} className={passed ? "bg-green-500" : ""}>
+                              {passed ? "合格" : "不合格"}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           </CardContent>
         </Card>
