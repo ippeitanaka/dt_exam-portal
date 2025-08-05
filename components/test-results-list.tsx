@@ -110,7 +110,7 @@ export default function TestResultsList({ scores }: TestResultsListProps) {
   const isPassingScore = (score: TestScore) => {
     const totalScore = score.total_score || 0
     const passingThreshold = isNewStructure ? 
-      (8 * 20 * PASSING_TOTAL_PERCENTAGE) : // 新構造: 8分野×20点×60% = 96点
+      (100 * PASSING_TOTAL_PERCENTAGE) : // 新構造: 100点満点×60% = 60点
       (220 * PASSING_TOTAL_PERCENTAGE) // 旧構造: 220点×60% = 132点
     
     const isPassing = totalScore >= passingThreshold
@@ -225,7 +225,7 @@ export default function TestResultsList({ scores }: TestResultsListProps) {
       }
 
     const passingThreshold = isNewStructure ? 
-      (8 * 20 * PASSING_TOTAL_PERCENTAGE) : // 新構造: 8分野×20点×60% = 96点
+      (100 * PASSING_TOTAL_PERCENTAGE) : // 新構造: 100点満点×60% = 60点
       (220 * PASSING_TOTAL_PERCENTAGE) // 旧構造: 220点×60% = 132点
 
     const passCount = filteredScores.filter(score => isPassingScore(score).isPassing).length
