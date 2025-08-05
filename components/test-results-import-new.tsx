@@ -22,10 +22,10 @@ export default function TestResultsImportNew() {
   const { toast } = useToast()
 
   // CSVテンプレートをダウンロードする関数
-  const handleDownloadTemplate = async () => {
+  const handleDownloadTemplate = async (templateType: 'new' | 'legacy' = 'legacy') => {
     setIsExporting(true)
     try {
-      const response = await fetch("/api/export-csv-template")
+      const response = await fetch(`/api/download-csv-template?type=${templateType === 'new' ? 'testResults' : 'testResultsLegacy'}`)
       if (!response.ok) {
         throw new Error("テンプレートのダウンロードに失敗しました")
       }
@@ -34,7 +34,7 @@ export default function TestResultsImportNew() {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = "test_results_template.csv"
+      a.download = templateType === 'new' ? "test_results_template_new.csv" : "test_results_template_legacy.csv"
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
@@ -42,7 +42,7 @@ export default function TestResultsImportNew() {
 
       toast({
         title: "成功",
-        description: "CSVテンプレートをダウンロードしました",
+        description: `CSVテンプレート（${templateType === 'new' ? '新構造' : '従来構造'}）をダウンロードしました`,
       })
     } catch (error) {
       console.error("テンプレートダウンロードエラー:", error)
@@ -177,37 +177,81 @@ export default function TestResultsImportNew() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="bg-muted p-4 rounded-lg mb-4">
-            <h4 className="font-medium mb-2">CSVフォーマット（シンプル版）</h4>
-            <p className="text-sm text-muted-foreground mb-2">
-              以下の順序で列を配置してください：
-            </p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
-              <Badge variant="outline">学生ID</Badge>
-              <Badge variant="outline">氏名</Badge>
-              <Badge variant="outline">総得点</Badge>
-              <Badge variant="outline">科目1</Badge>
-              <Badge variant="outline">科目2</Badge>
-              <Badge variant="outline">科目3</Badge>
-              <Badge variant="outline">科目4</Badge>
-              <Badge variant="outline">科目5</Badge>
+          <div className="space-y-4">
+            {/* 新しい分野構造テンプレート */}
+            <div className="bg-muted p-4 rounded-lg">
+              <h4 className="font-medium mb-2">📊 新しい分野構造（推奨）</h4>
+              <p className="text-sm text-muted-foreground mb-2">
+                以下の順序で列を配置してください：
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-7 gap-2 text-xs mb-2">
+                <Badge variant="default">学生ID</Badge>
+                <Badge variant="default">氏名</Badge>
+                <Badge variant="default">テスト名</Badge>
+                <Badge variant="default">テスト日付</Badge>
+                <Badge variant="default">総得点</Badge>
+                <Badge variant="outline">管理</Badge>
+                <Badge variant="outline">解剖</Badge>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-7 gap-2 text-xs">
+                <Badge variant="outline">顎口</Badge>
+                <Badge variant="outline">理工</Badge>
+                <Badge variant="outline">有床</Badge>
+                <Badge variant="outline">歯冠</Badge>
+                <Badge variant="outline">矯正</Badge>
+                <Badge variant="outline">小児</Badge>
+                <Badge variant="outline">満点</Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                ※ 分野別得点を正確に記録できます
+              </p>
+              <Button 
+                onClick={() => handleDownloadTemplate('new')} 
+                disabled={isExporting}
+                className="w-full sm:w-auto mt-2"
+                variant="default"
+              >
+                {isExporting ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4 mr-2" />
+                )}
+                新分野構造テンプレートをダウンロード
+              </Button>
             </div>
-            <p className="text-xs text-muted-foreground mt-2">
-              ※ 最低「学生ID、氏名、総得点」の3列があれば動作します
-            </p>
+
+            {/* 旧構造テンプレート */}
+            <div className="bg-muted/50 p-4 rounded-lg">
+              <h4 className="font-medium mb-2">📚 従来のA/B/C/D構造（互換用）</h4>
+              <p className="text-sm text-muted-foreground mb-2">
+                以下の順序で列を配置してください：
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-6 gap-2 text-xs">
+                <Badge variant="secondary">学生ID</Badge>
+                <Badge variant="secondary">氏名</Badge>
+                <Badge variant="secondary">総得点</Badge>
+                <Badge variant="outline">A問題</Badge>
+                <Badge variant="outline">B問題</Badge>
+                <Badge variant="outline">C問題</Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                ※ 最低「学生ID、氏名、総得点」の3列があれば動作します
+              </p>
+              <Button 
+                onClick={() => handleDownloadTemplate('legacy')} 
+                disabled={isExporting}
+                className="w-full sm:w-auto mt-2"
+                variant="outline"
+              >
+                {isExporting ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4 mr-2" />
+                )}
+                従来構造テンプレートをダウンロード
+              </Button>
+            </div>
           </div>
-          <Button 
-            onClick={handleDownloadTemplate} 
-            disabled={isExporting}
-            className="w-full sm:w-auto"
-          >
-            {isExporting ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4 mr-2" />
-            )}
-            CSVテンプレートをダウンロード
-          </Button>
         </CardContent>
       </Card>
 

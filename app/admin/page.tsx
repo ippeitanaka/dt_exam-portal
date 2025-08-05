@@ -9,6 +9,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
@@ -105,11 +106,25 @@ export default function AdminPage() {
 
     setIsLoadingScores(true)
     try {
-      const supabase = createClientComponentClient()
-      const { data, error } = await supabase.from("test_scores").select("*").order("test_date", { ascending: false })
+      const response = await fetch("/api/admin-scores", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
 
-      if (error) throw error
-      setScores(data || [])
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const result = await response.json()
+      
+      if (!result.success) {
+        throw new Error(result.error || "成績データの取得に失敗しました")
+      }
+
+      setScores(result.data || [])
+      console.log(`成績データ取得成功: ${result.count}件`)
     } catch (error) {
       console.error("成績データ取得エラー:", error)
       toast({
@@ -401,13 +416,66 @@ export default function AdminPage() {
                 <CardTitle>学生データインポート</CardTitle>
                 <CardDescription>CSVファイルから学生データをインポートします</CardDescription>
               </CardHeader>
+              
+              {/* CSVテンプレートダウンロード */}
+              <CardContent className="border-b pb-4 mb-4">
+                <div className="bg-muted p-4 rounded-lg">
+                  <h4 className="font-medium mb-2 flex items-center gap-2">
+                    <Download className="h-4 w-4" />
+                    学生データCSVテンプレート
+                  </h4>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    学生データインポート用のCSVテンプレートをダウンロードできます。
+                  </p>
+                  <div className="flex gap-2 text-xs mb-3">
+                    <Badge variant="outline">学生ID</Badge>
+                    <Badge variant="outline">氏名</Badge>
+                    <Badge variant="outline">メールアドレス</Badge>
+                  </div>
+                  <Button 
+                    onClick={async () => {
+                      try {
+                        const response = await fetch('/api/download-csv-template?type=students')
+                        if (!response.ok) throw new Error('テンプレートダウンロードに失敗しました')
+                        
+                        const blob = await response.blob()
+                        const url = window.URL.createObjectURL(blob)
+                        const a = document.createElement('a')
+                        a.href = url
+                        a.download = 'students_template.csv'
+                        document.body.appendChild(a)
+                        a.click()
+                        window.URL.revokeObjectURL(url)
+                        document.body.removeChild(a)
+                        
+                        toast({
+                          title: "成功",
+                          description: "学生データCSVテンプレートをダウンロードしました",
+                        })
+                      } catch (error) {
+                        toast({
+                          title: "エラー",
+                          description: "テンプレートのダウンロードに失敗しました",
+                          variant: "destructive",
+                        })
+                      }
+                    }}
+                    variant="outline" 
+                    size="sm"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    学生データテンプレートをダウンロード
+                  </Button>
+                </div>
+              </CardContent>
+
               <form onSubmit={handleFileUpload}>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="csvFile">CSVファイル</Label>
                     <Input id="csvFile" type="file" accept=".csv" required />
                     <p className="text-sm text-gray-500">
-                      CSVファイルは「名前,学生ID,パスワード」の形式である必要があります
+                      CSVファイルは「学生ID,氏名,メールアドレス」の形式である必要があります。上記のテンプレートをご利用ください。
                     </p>
                   </div>
                 </CardContent>

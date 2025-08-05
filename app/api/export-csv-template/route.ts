@@ -1,10 +1,17 @@
 import { NextResponse } from "next/server"
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
-import { cookies } from "next/headers"
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
 export async function GET() {
   try {
-    const supabase = createRouteHandlerClient({ cookies })
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
 
     // 学生リストを取得
     const { data: students, error } = await supabase
@@ -16,45 +23,55 @@ export async function GET() {
       throw error
     }
 
-    // CSVヘッダー（シンプル版）
+    // 新しい分野構造のCSVヘッダー
     const headers = [
       "学生ID",
       "氏名", 
+      "テスト名",
+      "テスト日付",
       "総得点",
-      "科目1",
-      "科目2", 
-      "科目3",
-      "科目4",
-      "科目5"
+      "管理",      // 新分野1
+      "解剖",      // 新分野2
+      "顎口",      // 新分野3
+      "理工",      // 新分野4
+      "有床",      // 新分野5
+      "歯冠",      // 新分野6
+      "矯正",      // 新分野7
+      "小児",      // 新分野8
+      "満点"
     ]
 
-    // CSVデータを作成
-    let csvContent = headers.join(",") + "\n"
+    // UTF-8 BOMを追加して文字化けを防ぐ
+    const BOM = '\uFEFF'
+    let csvContent = BOM + headers.join(",") + "\n"
 
     // 学生データがある場合は、学生情報を含むテンプレートを作成
     if (students && students.length > 0) {
-      students.forEach((student, index) => {
+      students.forEach((student) => {
         const row = [
-          student.student_id, // 番号（学生ID）
-          student.name,       // 氏名
-          "",                 // 得点（空白）
-          "",                 // 管理（空白）
-          "",                 // 解剖（空白）
-          "",                 // 病口（空白）
-          "",                 // 理工（空白）
-          "",                 // 有床（空白）
-          "",                 // 歯冠（空白）
-          "",                 // 矯正（空白）
-          ""                  // 小児（空白）
+          student.student_id,     // 学生ID
+          student.name,           // 氏名
+          "第1回模擬試験",         // テスト名（例）
+          "2025-08-05",          // テスト日付（例）
+          "",                    // 総得点（空白）
+          "",                    // 管理（空白）
+          "",                    // 解剖（空白）
+          "",                    // 顎口（空白）
+          "",                    // 理工（空白）
+          "",                    // 有床（空白）
+          "",                    // 歯冠（空白）
+          "",                    // 矯正（空白）
+          "",                    // 小児（空白）
+          "400"                  // 満点（例）
         ]
         csvContent += row.join(",") + "\n"
       })
     } else {
       // 学生データがない場合はサンプル行を追加
       const sampleRows = [
-        ["231001", "前原 謙太", "57", "4", "7", "7", "6", "10", "12", "6", "5"],
-        ["231002", "守立 時仁", "85", "7", "11", "6", "15", "14", "15", "9", "8"],
-        ["231003", "宇山 哲来", "39", "2", "4", "1", "7", "4", "9", "3", "3"]
+        ["231001", "前原 謙太", "第1回模擬試験", "2025-08-05", "350", "45", "42", "38", "40", "47", "44", "46", "48", "400"],
+        ["231002", "足立 晴仁", "第1回模擬試験", "2025-08-05", "320", "40", "38", "35", "42", "43", "41", "40", "41", "400"],
+        ["231003", "宇山 爾来", "第1回模擬試験", "2025-08-05", "340", "39", "42", "38", "42", "47", "46", "42", "46", "400"]
       ]
       
       sampleRows.forEach(row => {
@@ -66,7 +83,10 @@ export async function GET() {
     return new NextResponse(csvContent, {
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
-        "Content-Disposition": "attachment; filename=test_results_template.csv",
+        "Content-Disposition": "attachment; filename=\"テスト結果テンプレート_新分野構造.csv\"",
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0"
       },
     })
   } catch (error) {

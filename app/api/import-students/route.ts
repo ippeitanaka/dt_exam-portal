@@ -19,7 +19,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 })
     }
 
-    const text = await csvFile.text()
+    // CSVファイルをテキストとして読み込む（UTF-8 BOM対応）
+    const arrayBuffer = await csvFile.arrayBuffer()
+    let text = new TextDecoder('utf-8').decode(arrayBuffer)
+    
+    // BOMを削除
+    if (text.charCodeAt(0) === 0xFEFF) {
+      text = text.substring(1)
+    }
+    
     const rows = text.split("\n")
 
     // Skip header row if it exists

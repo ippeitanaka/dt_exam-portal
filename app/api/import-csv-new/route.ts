@@ -1,6 +1,4 @@
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
 import { createClient } from "@supabase/supabase-js"
-import { cookies } from "next/headers"
 import { NextResponse } from "next/server"
 
 export async function POST(request: Request) {
@@ -18,10 +16,15 @@ export async function POST(request: Request) {
       )
     }
 
-    // 管理者用のSupabaseクライアント
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
+    // 管理者用のSupabaseクライアント（RLS回避）
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
     
-    // 管理者権限でデータ操作
+    // フォームデータの取得
     const formData = await request.formData()
     const csvFile = formData.get("file") as File
     const testName = formData.get("testName") as string
@@ -39,12 +42,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "必要なパラメータが不足しています" }, { status: 400 })
     }
 
-    // CSVファイルをテキストとして読み込む
-    const text = await csvFile.text()
+    // CSVファイルをテキストとして読み込む（UTF-8 BOM対応）
+    const arrayBuffer = await csvFile.arrayBuffer()
+    let text = new TextDecoder('utf-8').decode(arrayBuffer)
+    
+    // BOMを削除
+    if (text.charCodeAt(0) === 0xFEFF) {
+      text = text.substring(1)
+    }
+    
     console.log("CSVテキスト長:", text.length)
     console.log("CSVテキスト先頭100文字:", text.substring(0, 100))
     
-    const rows = text.split("\n")
+    const rows = text.split("\n").filter(row => row.trim() !== '')
     console.log("CSV行数:", rows.length)
 
     if (rows.length < 2) {
@@ -74,24 +84,35 @@ export async function POST(request: Request) {
         const columns = row.split(",").map((col) => col.trim())
         console.log(`行 ${i + 1} 列数: ${columns.length}, データ: ${columns}`)
 
-        if (columns.length < 3) {
-          errors.push(`行 ${i + 1}: 列が不足しています (${columns.length} 列、最低3列必要)`)
+        if (columns.length < 5) {
+          errors.push(`行 ${i + 1}: 列が不足しています (${columns.length} 列、最低5列必要)`)
           continue
         }
 
-        // データを抽出（シンプル版）
-        const studentId = columns[0]  // 番号（学生ID）
-        const name = columns[1]       // 氏名
-        const totalScore = parseFloat(columns[2]) || 0  // 得点
+        // 新しい分野構造でのデータ抽出
+        const studentId = columns[0]      // 学生ID
+        const name = columns[1]           // 氏名
+        const testNameCol = columns[2]    // テスト名
+        const testDateCol = columns[3]    // テスト日付
+        const totalScore = parseFloat(columns[4]) || 0  // 総得点
 
-        // 個別科目得点（ある場合のみ）
-        const subject1 = parseFloat(columns[3]) || 0   // 科目1
-        const subject2 = parseFloat(columns[4]) || 0   // 科目2
-        const subject3 = parseFloat(columns[5]) || 0   // 科目3
-        const subject4 = parseFloat(columns[6]) || 0   // 科目4
-        const subject5 = parseFloat(columns[7]) || 0   // 科目5
+        // 分野別得点（新構造）
+        const sectionKanri = parseFloat(columns[5]) || 0     // 管理
+        const sectionKaibou = parseFloat(columns[6]) || 0    // 解剖
+        const sectionGakkou = parseFloat(columns[7]) || 0    // 顎口
+        const sectionRikou = parseFloat(columns[8]) || 0     // 理工
+        const sectionYushou = parseFloat(columns[9]) || 0    // 有床
+        const sectionShikan = parseFloat(columns[10]) || 0   // 歯冠
+        const sectionKyousei = parseFloat(columns[11]) || 0  // 矯正
+        const sectionShouni = parseFloat(columns[12]) || 0   // 小児
+        const maxScore = parseFloat(columns[13]) || 400      // 満点
+
+        // テスト名と日付はパラメータを優先（CSVに含まれていても上書き）
+        const finalTestName = testName || testNameCol || '未設定テスト'
+        const finalTestDate = testDate || testDateCol || new Date().toISOString().split('T')[0]
 
         console.log(`行 ${i + 1} パースされたデータ: ID=${studentId}, 氏名=${name}, 総合得点=${totalScore}`)
+        console.log(`分野別得点: 管理=${sectionKanri}, 解剖=${sectionKaibou}, 顎口=${sectionGakkou}, 理工=${sectionRikou}`)
 
         if (!studentId || !name) {
           errors.push(`行 ${i + 1}: 学生IDまたは氏名が不足しています`)
@@ -124,6 +145,7 @@ export async function POST(request: Request) {
             .insert({
               student_id: studentId,
               name: name,
+              email: `${studentId}@example.com`, // デフォルトメール
               password: studentId // デフォルトパスワードは学生ID
             })
 
@@ -135,20 +157,22 @@ export async function POST(request: Request) {
           console.log(`学生ID ${studentId} の作成完了`)
         }
 
-        // シンプルなデータ構造でバッチ処理用のデータを追加
+        // 新しい分野構造でのデータを追加
         const recordData = {
           student_id: studentId,
           name: name,
-          test_name: testName,
-          test_date: testDate,
-          section_a: subject1,  // 科目1
-          section_b: subject2,  // 科目2
-          section_c: subject3,  // 科目3
-          section_d: subject4,  // 科目4
-          section_ad: subject5, // 科目5
-          section_bc: 0,        // 未使用
+          test_name: finalTestName,
+          test_date: finalTestDate,
+          section_kanri: sectionKanri,      // 管理
+          section_kaibou: sectionKaibou,    // 解剖
+          section_gakkou: sectionGakkou,    // 顎口
+          section_rikou: sectionRikou,      // 理工
+          section_yushou: sectionYushou,    // 有床
+          section_shikan: sectionShikan,    // 歯冠
+          section_kyousei: sectionKyousei,  // 矯正
+          section_shouni: sectionShouni,    // 小児
           total_score: totalScore,
-          max_score: 400 // デフォルト満点
+          max_score: maxScore
         }
         
         console.log(`バッチデータ追加: ${JSON.stringify(recordData)}`)

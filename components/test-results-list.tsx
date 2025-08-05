@@ -45,6 +45,36 @@ type TestInfo = {
 // 学生グループの型定義
 type StudentGroup = "day" | "evening" | "all"
 
+// 新構造かどうかを判定する関数
+const hasNewStructure = (score: TestScore): boolean => {
+  return !!(score.section_kanri !== undefined || 
+           score.section_kaibou !== undefined || 
+           score.section_gakkou !== undefined ||
+           score.section_rikou !== undefined ||
+           score.section_yushou !== undefined ||
+           score.section_shikan !== undefined ||
+           score.section_kyousei !== undefined ||
+           score.section_shouni !== undefined)
+}
+
+// データ構造を自動判定して統一フォーマットに変換
+const normalizeScore = (score: TestScore) => {
+  if (hasNewStructure(score)) {
+    // 新構造の場合、そのまま返す
+    return {
+      ...score,
+      structureType: 'new' as const
+    }
+  } else {
+    // 旧構造の場合、可能な限り新構造に変換
+    return {
+      ...score,
+      structureType: 'legacy' as const,
+      // 旧構造のフィールドも保持
+    }
+  }
+}
+
 interface TestResultsListProps {
   scores: TestScore[]
 }
@@ -55,6 +85,13 @@ export default function TestResultsList({ scores }: TestResultsListProps) {
 
   // 表示するグループ（全体、昼間部、夜間部）
   const [viewGroup, setViewGroup] = useState<StudentGroup>("all")
+
+  // データ構造を判定（新構造のデータが1つでもあれば新構造として扱う）
+  const isNewStructure = useMemo(() => {
+    return scores.some(score => hasNewStructure(score))
+  }, [scores])
+
+  console.log(`TestResultsList: ${scores.length}件のデータ, 新構造: ${isNewStructure}`)
 
   // 合格基準
   const PASSING_SCORE_AD = 132 // AD問題の合格点
@@ -126,6 +163,14 @@ export default function TestResultsList({ scores }: TestResultsListProps) {
         const bcA = a.section_bc || 0
         const bcB = b.section_bc || 0
         return bcB - bcA // 降順（高い順）
+      } else if (option === "section_kanri") {
+        const kanriA = a.section_kanri || 0
+        const kanriB = b.section_kanri || 0
+        return kanriB - kanriA // 降順（高い順）
+      } else if (option === "section_kaibou") {
+        const kaibouA = a.section_kaibou || 0
+        const kaibouB = b.section_kaibou || 0
+        return kaibouB - kaibouA // 降順（高い順）
       } else if (option === "total_score") {
         const totalA = a.total_score || 0
         const totalB = b.total_score || 0
@@ -171,6 +216,41 @@ export default function TestResultsList({ scores }: TestResultsListProps) {
       adPassRate: ((adPassCount / count) * 100).toFixed(1),
       bcPassRate: ((bcPassCount / count) * 100).toFixed(1),
       totalPassRate: ((totalPassCount / count) * 100).toFixed(1),
+      count,
+    }
+  }
+
+  // 新構造用の平均点を計算
+  const calculateNewStructureAverages = (scores: TestScore[], group: StudentGroup = "all") => {
+    // グループでフィルタリング
+    const filteredScores =
+      group === "all" ? scores : scores.filter((score) => getStudentGroup(score.student_id) === group)
+
+    const count = filteredScores.length
+    if (count === 0)
+      return {
+        section_kanri: 0,
+        section_kaibou: 0,
+        section_gakkou: 0,
+        section_rikou: 0,
+        section_yushou: 0,
+        section_shikan: 0,
+        section_kyousei: 0,
+        section_shouni: 0,
+        total_score: 0,
+        count: 0,
+      }
+
+    return {
+      section_kanri: filteredScores.reduce((sum, score) => sum + (score.section_kanri || 0), 0) / count,
+      section_kaibou: filteredScores.reduce((sum, score) => sum + (score.section_kaibou || 0), 0) / count,
+      section_gakkou: filteredScores.reduce((sum, score) => sum + (score.section_gakkou || 0), 0) / count,
+      section_rikou: filteredScores.reduce((sum, score) => sum + (score.section_rikou || 0), 0) / count,
+      section_yushou: filteredScores.reduce((sum, score) => sum + (score.section_yushou || 0), 0) / count,
+      section_shikan: filteredScores.reduce((sum, score) => sum + (score.section_shikan || 0), 0) / count,
+      section_kyousei: filteredScores.reduce((sum, score) => sum + (score.section_kyousei || 0), 0) / count,
+      section_shouni: filteredScores.reduce((sum, score) => sum + (score.section_shouni || 0), 0) / count,
+      total_score: filteredScores.reduce((sum, score) => sum + (score.total_score || 0), 0) / count,
       count,
     }
   }
@@ -222,8 +302,17 @@ export default function TestResultsList({ scores }: TestResultsListProps) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="student_id">学生ID順</SelectItem>
-              <SelectItem value="section_ad">AD問題点数順</SelectItem>
-              <SelectItem value="section_bc">BC問題点数順</SelectItem>
+              {isNewStructure ? (
+                <>
+                  <SelectItem value="section_kanri">管理点数順</SelectItem>
+                  <SelectItem value="section_kaibou">解剖点数順</SelectItem>
+                </>
+              ) : (
+                <>
+                  <SelectItem value="section_ad">AD問題点数順</SelectItem>
+                  <SelectItem value="section_bc">BC問題点数順</SelectItem>
+                </>
+              )}
               <SelectItem value="total_score">合計点数順</SelectItem>
             </SelectContent>
           </Select>
@@ -609,37 +698,74 @@ export default function TestResultsList({ scores }: TestResultsListProps) {
                           </Button>
                         </TableHead>
                         <TableHead>学生名</TableHead>
-                        <TableHead className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="flex items-center gap-1 -ml-3 font-medium"
-                            onClick={() => setSortOption("section_a")}
-                          >
-                            A問題
-                          </Button>
-                        </TableHead>
-                        <TableHead className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="flex items-center gap-1 -ml-3 font-medium"
-                            onClick={() => setSortOption("section_b")}
-                          >
-                            B問題
-                          </Button>
-                        </TableHead>
-                        <TableHead className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="flex items-center gap-1 -ml-3 font-medium"
-                            onClick={() => setSortOption("section_c")}
-                          >
-                            C問題
-                          </Button>
-                        </TableHead>
-                        <TableHead className="text-right">
+                        {isNewStructure ? (
+                          // 新構造のヘッダー
+                          <>
+                            <TableHead className="text-right">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="flex items-center gap-1 -ml-3 font-medium"
+                                onClick={() => setSortOption("section_kanri")}
+                              >
+                                管理
+                                {sortOption === "section_kanri" && <ArrowUpDown className="h-3 w-3" />}
+                              </Button>
+                            </TableHead>
+                            <TableHead className="text-right">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="flex items-center gap-1 -ml-3 font-medium"
+                                onClick={() => setSortOption("section_kaibou")}
+                              >
+                                解剖
+                                {sortOption === "section_kaibou" && <ArrowUpDown className="h-3 w-3" />}
+                              </Button>
+                            </TableHead>
+                            <TableHead className="text-right">顎口</TableHead>
+                            <TableHead className="text-right">理工</TableHead>
+                            <TableHead className="text-right">有床</TableHead>
+                            <TableHead className="text-right">歯冠</TableHead>
+                            <TableHead className="text-right">矯正</TableHead>
+                            <TableHead className="text-right">小児</TableHead>
+                          </>
+                        ) : (
+                          // 旧構造のヘッダー
+                          <>
+                            <TableHead className="text-right">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="flex items-center gap-1 -ml-3 font-medium"
+                                onClick={() => setSortOption("section_a")}
+                              >
+                                A問題
+                              </Button>
+                            </TableHead>
+                            <TableHead className="text-right">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="flex items-center gap-1 -ml-3 font-medium"
+                                onClick={() => setSortOption("section_b")}
+                              >
+                                B問題
+                              </Button>
+                            </TableHead>
+                            <TableHead className="text-right">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="flex items-center gap-1 -ml-3 font-medium"
+                                onClick={() => setSortOption("section_c")}
+                              >
+                                C問題
+                              </Button>
+                            </TableHead>
+                          </>
+                        )}
+                                                <TableHead className="text-right">
                           <Button
                             variant="ghost"
                             size="sm"
@@ -647,6 +773,28 @@ export default function TestResultsList({ scores }: TestResultsListProps) {
                             onClick={() => setSortOption("section_d")}
                           >
                             D問題
+                          </Button>
+                        </TableHead>
+                        <TableHead className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="flex items-center gap-1 -ml-3 font-medium"
+                            onClick={() => setSortOption("section_ad")}
+                          >
+                            AD問題
+                            {sortOption === "section_ad" && <ArrowUpDown className="h-3 w-3" />}
+                          </Button>
+                        </TableHead>
+                        <TableHead className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="flex items-center gap-1 -ml-3 font-medium"
+                            onClick={() => setSortOption("section_bc")}
+                          >
+                            BC問題
+                            {sortOption === "section_bc" && <ArrowUpDown className="h-3 w-3" />}
                           </Button>
                         </TableHead>
                         <TableHead className="text-right">
@@ -702,26 +850,43 @@ export default function TestResultsList({ scores }: TestResultsListProps) {
                                 </div>
                               </TableCell>
                               <TableCell>{score.name || "名前なし"}</TableCell>
-                              <TableCell className="text-right">{score.section_a || "-"}</TableCell>
-                              <TableCell className="text-right">{score.section_b || "-"}</TableCell>
-                              <TableCell className="text-right">{score.section_c || "-"}</TableCell>
-                              <TableCell className="text-right">{score.section_d || "-"}</TableCell>
-                              <TableCell
-                                className={`text-right font-medium ${adPassing ? "bg-green-50 text-green-700" : ""}`}
-                              >
-                                <div className="flex items-center justify-end gap-1">
-                                  {score.section_ad || "-"}
-                                  {adPassing && <CheckCircle className="h-4 w-4 text-green-500" />}
-                                </div>
-                              </TableCell>
-                              <TableCell
-                                className={`text-right font-medium ${bcPassing ? "bg-green-50 text-green-700" : ""}`}
-                              >
-                                <div className="flex items-center justify-end gap-1">
-                                  {score.section_bc || "-"}
-                                  {bcPassing && <CheckCircle className="h-4 w-4 text-green-500" />}
-                                </div>
-                              </TableCell>
+                              {isNewStructure ? (
+                                // 新構造のデータ表示
+                                <>
+                                  <TableCell className="text-right">{score.section_kanri || "-"}</TableCell>
+                                  <TableCell className="text-right">{score.section_kaibou || "-"}</TableCell>
+                                  <TableCell className="text-right">{score.section_gakkou || "-"}</TableCell>
+                                  <TableCell className="text-right">{score.section_rikou || "-"}</TableCell>
+                                  <TableCell className="text-right">{score.section_yushou || "-"}</TableCell>
+                                  <TableCell className="text-right">{score.section_shikan || "-"}</TableCell>
+                                  <TableCell className="text-right">{score.section_kyousei || "-"}</TableCell>
+                                  <TableCell className="text-right">{score.section_shouni || "-"}</TableCell>
+                                </>
+                              ) : (
+                                // 旧構造のデータ表示
+                                <>
+                                  <TableCell className="text-right">{score.section_a || "-"}</TableCell>
+                                  <TableCell className="text-right">{score.section_b || "-"}</TableCell>
+                                  <TableCell className="text-right">{score.section_c || "-"}</TableCell>
+                                  <TableCell className="text-right">{score.section_d || "-"}</TableCell>
+                                  <TableCell
+                                    className={`text-right font-medium ${adPassing ? "bg-green-50 text-green-700" : ""}`}
+                                  >
+                                    <div className="flex items-center justify-end gap-1">
+                                      {score.section_ad || "-"}
+                                      {adPassing && <CheckCircle className="h-4 w-4 text-green-500" />}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell
+                                    className={`text-right font-medium ${bcPassing ? "bg-green-50 text-green-700" : ""}`}
+                                  >
+                                    <div className="flex items-center justify-end gap-1">
+                                      {score.section_bc || "-"}
+                                      {bcPassing && <CheckCircle className="h-4 w-4 text-green-500" />}
+                                    </div>
+                                  </TableCell>
+                                </>
+                              )}
                               <TableCell className="text-right font-medium">{score.total_score || "-"}</TableCell>
                               <TableCell className="text-center">
                                 {allPassing ? (
