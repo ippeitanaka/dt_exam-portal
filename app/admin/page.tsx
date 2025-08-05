@@ -425,12 +425,13 @@ export default function AdminPage() {
                     学生データCSVテンプレート
                   </h4>
                   <p className="text-sm text-muted-foreground mb-3">
-                    学生データインポート用のCSVテンプレートをダウンロードできます。
+                    学生データインポート用のCSVテンプレートをダウンロードできます。パスワード列が追加されました。
                   </p>
                   <div className="flex gap-2 text-xs mb-3">
                     <Badge variant="outline">学生ID</Badge>
                     <Badge variant="outline">氏名</Badge>
                     <Badge variant="outline">メールアドレス</Badge>
+                    <Badge variant="default">パスワード</Badge>
                   </div>
                   <Button 
                     onClick={async () => {
@@ -475,7 +476,7 @@ export default function AdminPage() {
                     <Label htmlFor="csvFile">CSVファイル</Label>
                     <Input id="csvFile" type="file" accept=".csv" required />
                     <p className="text-sm text-gray-500">
-                      CSVファイルは「学生ID,氏名,メールアドレス」の形式である必要があります。上記のテンプレートをご利用ください。
+                      CSVファイルは「学生ID,氏名,メールアドレス,パスワード」の形式である必要があります。上記のテンプレートをご利用ください。パスワードは学生のログイン時に使用されます。
                     </p>
                   </div>
                 </CardContent>

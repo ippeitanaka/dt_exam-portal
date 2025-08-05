@@ -9,13 +9,13 @@ export async function GET(request: Request) {
     const templates = {
       students: {
         filename: '学生データテンプレート.csv',
-        headers: ['学生ID', '氏名', 'メールアドレス'],
+        headers: ['学生ID', '氏名', 'メールアドレス', 'パスワード'],
         sampleData: [
-          ['221017', '前原 謙太', 'maehara@example.com'],
-          ['231001', '足立 晴仁', 'adachi@example.com'],
-          ['231002', '宇山 爾来', 'uyama@example.com']
+          ['221017', '前原 謙太', 'maehara@example.com', 'password123'],
+          ['231001', '足立 晴仁', 'adachi@example.com', 'password456'],
+          ['231002', '宇山 爾来', 'uyama@example.com', 'password789']
         ],
-        description: '学生データインポート用のCSVテンプレートです。学生ID、氏名、メールアドレスの順で入力してください。'
+        description: '学生データインポート用のCSVテンプレートです。学生ID、氏名、メールアドレス、パスワードの順で入力してください。パスワードは学生がログインに使用します。'
       },
       testResults: {
         filename: 'テスト結果テンプレート.csv',

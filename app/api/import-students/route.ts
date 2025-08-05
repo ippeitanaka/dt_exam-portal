@@ -42,7 +42,17 @@ export async function POST(request: Request) {
       // Split by comma, but handle potential quotes
       const columns = row.split(",").map((col) => col.trim().replace(/^"|"$/g, ""))
 
-      if (columns.length >= 3) {
+      if (columns.length >= 4) {
+        const [studentId, name, email, password] = columns
+
+        students.push({
+          name,
+          student_id: studentId,
+          email,
+          password,
+        })
+      } else if (columns.length >= 3) {
+        // 後方互換性のため、3列の場合は旧形式として処理
         const [name, studentId, password] = columns
 
         students.push({
