@@ -11,6 +11,7 @@ import { Loader2, AlertCircle, FileText, CheckCircle, Download, Upload } from "l
 import { useToast } from "@/hooks/use-toast"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function TestResultsImportNew() {
   const [isImporting, setIsImporting] = useState(false)
@@ -19,6 +20,7 @@ export default function TestResultsImportNew() {
   const [importResults, setImportResults] = useState<any>(null)
   const [csvPreview, setCsvPreview] = useState<string[][]>([])
   const [fileName, setFileName] = useState("")
+  const [testType, setTestType] = useState<'100q' | '80q'>('100q') // テストタイプ選択
   const { toast } = useToast()
 
   // CSVテンプレートをダウンロードする関数
@@ -124,6 +126,7 @@ export default function TestResultsImportNew() {
       formData.append("file", file)
       formData.append("testName", testNameInput.value)
       formData.append("testDate", testDateInput.value)
+      formData.append("testType", testType) // テストタイプを追加
 
       const response = await fetch("/api/import-csv-new", {
         method: "POST",
@@ -268,7 +271,7 @@ export default function TestResultsImportNew() {
         </CardHeader>
         <form onSubmit={handleImport}>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="testName">テスト名</Label>
                 <Input
@@ -284,6 +287,24 @@ export default function TestResultsImportNew() {
                   type="date"
                   required
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="testType">テストタイプ</Label>
+                <Select value={testType} onValueChange={(value: '100q' | '80q') => setTestType(value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="テストタイプを選択" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="100q">100問テスト（100点満点）</SelectItem>
+                    <SelectItem value="80q">80問テスト（80点満点）</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {testType === '100q' 
+                    ? '合格点: 60点（60%）' 
+                    : '合格点: 48点（60%）'
+                  }
+                </p>
               </div>
             </div>
 

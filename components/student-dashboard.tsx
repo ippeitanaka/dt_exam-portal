@@ -40,6 +40,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import type { TestScoreWithStats } from "@/lib/ranking-utils"
+import { isPassingScore, getPassingScore, TEST_CONFIGURATIONS } from "@/lib/ranking-utils"
 import { motion } from "framer-motion"
 
 type Student = {
@@ -288,19 +289,15 @@ export default function StudentDashboard({
 
   const trend = getTrend()
 
-  // 合格ラインに対する状況（60点基準）
-  const isPassingScore = (score: TestScoreWithStats) => {
-    return (score.total_score || 0) >= 60
-  }
-
+  // テストタイプに応じた合格判定
   const passStatus = isPassingScore(latestScore)
     ? {
         status: "pass",
-        message: "現在の成績は合格ライン（60点）を超えています。このまま維持しましょう！",
+        message: `現在の成績は合格ライン（${getPassingScore(latestScore.test_type || '100q')}点）を超えています。このまま維持しましょう！`,
       }
     : {
         status: "fail",
-        message: `合格には、あと${Math.max(0, 60 - (latestScore.total_score || 0))}点必要です。もう少し頑張りましょう！`,
+        message: `合格には、あと${Math.max(0, getPassingScore(latestScore.test_type || '100q') - (latestScore.total_score || 0))}点必要です。もう少し頑張りましょう！`,
       }
 
   // 実績の達成回数を計算
@@ -494,7 +491,13 @@ export default function StudentDashboard({
                       <p className="text-sm font-medium text-gray-500">最新の点数</p>
                       <div className="flex items-center justify-center mt-1">
                         <p className="text-3xl font-bold">{latestScore.total_score || 0}点</p>
+                        <span className="text-lg text-gray-400 ml-1">
+                          / {TEST_CONFIGURATIONS[latestScore.test_type || '100q'].total_questions}点
+                        </span>
                       </div>
+                      <p className="text-xs text-gray-500">
+                        合格ライン: {getPassingScore(latestScore.test_type || '100q')}点
+                      </p>
                       <div className="mt-2">
                         <span
                           className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -590,6 +593,7 @@ export default function StudentDashboard({
                   <TableRow className="bg-muted/30">
                     <TableHead>試験名</TableHead>
                     <TableHead>実施日</TableHead>
+                    <TableHead className="text-center">タイプ</TableHead>
                     <TableHead className="text-right">管理</TableHead>
                     <TableHead className="text-right">解剖</TableHead>
                     <TableHead className="text-right">顎口</TableHead>
@@ -614,6 +618,11 @@ export default function StudentDashboard({
                       >
                         <TableCell className="font-medium">{score.test_name}</TableCell>
                         <TableCell>{new Date(score.test_date).toLocaleDateString("ja-JP")}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge variant="outline" className={`text-xs ${score.test_type === '80q' ? 'bg-orange-50 border-orange-200' : 'bg-blue-50 border-blue-200'}`}>
+                            {score.test_type === '80q' ? '80問' : '100問'}
+                          </Badge>
+                        </TableCell>
                         <TableCell className="text-right">{score.section_kanri || "-"}</TableCell>
                         <TableCell className="text-right">{score.section_kaibou || "-"}</TableCell>
                         <TableCell className="text-right">{score.section_gakkou || "-"}</TableCell>
@@ -622,7 +631,12 @@ export default function StudentDashboard({
                         <TableCell className="text-right">{score.section_shikan || "-"}</TableCell>
                         <TableCell className="text-right">{score.section_kyousei || "-"}</TableCell>
                         <TableCell className="text-right">{score.section_shouni || "-"}</TableCell>
-                        <TableCell className="text-right font-medium">{score.total_score || "-"}</TableCell>
+                        <TableCell className="text-right font-medium">
+                          {score.total_score || "-"}
+                          <span className="text-xs text-gray-400 ml-1">
+                            / {TEST_CONFIGURATIONS[score.test_type || '100q'].total_questions}
+                          </span>
+                        </TableCell>
                         <TableCell className="text-center">
                           <Badge variant="outline" className="bg-blue-50 border-blue-200">
                             {score.rank || "-"}位

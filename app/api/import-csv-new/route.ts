@@ -29,17 +29,24 @@ export async function POST(request: Request) {
     const csvFile = formData.get("file") as File
     const testName = formData.get("testName") as string
     const testDate = formData.get("testDate") as string
+    const testType = formData.get("testType") as string || '100q' // デフォルトは100問
 
     console.log("パラメータ:", { 
       fileName: csvFile?.name, 
       testName, 
       testDate,
+      testType,
       fileSize: csvFile?.size 
     })
 
     if (!csvFile || !testName || !testDate) {
       console.log("パラメータ不足エラー")
       return NextResponse.json({ error: "必要なパラメータが不足しています" }, { status: 400 })
+    }
+
+    // testTypeの検証
+    if (testType !== '100q' && testType !== '80q') {
+      return NextResponse.json({ error: "無効なテストタイプです" }, { status: 400 })
     }
 
     // CSVファイルをテキストとして読み込む（UTF-8 BOM対応）
@@ -105,7 +112,9 @@ export async function POST(request: Request) {
         const sectionShikan = parseFloat(columns[10]) || 0   // 歯冠
         const sectionKyousei = parseFloat(columns[11]) || 0  // 矯正
         const sectionShouni = parseFloat(columns[12]) || 0   // 小児
-        const maxScore = parseFloat(columns[13]) || 400      // 満点
+        
+        // test_typeに応じてmax_scoreを設定
+        const maxScore = testType === '80q' ? 80 : 100
 
         // テスト名と日付はパラメータを優先（CSVに含まれていても上書き）
         const finalTestName = testName || testNameCol || '未設定テスト'
@@ -163,6 +172,7 @@ export async function POST(request: Request) {
           name: name,
           test_name: finalTestName,
           test_date: finalTestDate,
+          test_type: testType, // テストタイプを追加
           section_kanri: sectionKanri,      // 管理
           section_kaibou: sectionKaibou,    // 解剖
           section_gakkou: sectionGakkou,    // 顎口

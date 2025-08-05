@@ -1,4 +1,20 @@
-import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
+import { createClient } from "@supabase/supabase-js"
+
+// Service role client for admin operations
+const getSupabaseAdmin = () => {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    }
+  )
+}
+
+// Types and interfaces
 
 export type TestScore = {
   id: string
@@ -6,6 +22,7 @@ export type TestScore = {
   name?: string // name列を追加
   test_name: string
   test_date: string
+  test_type: '100q' | '80q' // テストタイプ（100問 or 80問）
   section_kanri: number
   section_kaibou: number
   section_gakkou: number
@@ -72,169 +89,30 @@ export interface SectionRanking {
   student_id: string;
   name: string;
   score: number;
-  rank: number;
 }
+
 export async function getStudentScoresWithStats(studentId: string): Promise<TestScoreWithStats[]> {
-  const supabase = createClientComponentClient()
   console.log("Getting scores for student:", studentId)
 
   try {
-    // 1. 学生の全テスト結果を取得（name列も含める）
-    const { data: studentScores, error: scoresError } = await supabase
-      .from("test_scores")
-      .select("*")
-      .eq("student_id", studentId)
-      .order("test_date", { ascending: false })
+    // ローカルストレージから現在の学生情報を取得
+    const currentStudent = localStorage.getItem("currentStudent")
+    const sessionStudentId = currentStudent ? JSON.parse(currentStudent).student_id : null
 
-    if (scoresError || !studentScores) {
-      console.error("成績データ取得エラー:", scoresError)
-      return []
-    }
-
-    // 3. 成績データがない場合は早期リターン
-    if (!studentScores || studentScores.length === 0) {
-      console.log(`No scores found for student ${studentId}, returning empty array`)
-      return []
-    }
-
-    // 2. 各テストの平均点を計算
-    const testAverages: Record<
-      string,
-      {
-        avg_section_kanri: number
-        avg_section_kaibou: number
-        avg_section_gakkou: number
-        avg_section_rikou: number
-        avg_section_yushou: number
-        avg_section_shikan: number
-        avg_section_kyousei: number
-        avg_section_shouni: number
-        avg_total_score: number
-      }
-    > = {}
-
-    for (const score of studentScores) {
-      try {
-        console.log(`Getting averages for test: ${score.test_name}, date: ${score.test_date}`)
-
-        const { data: avgData, error: avgError } = await supabase.rpc("get_test_averages", {
-          p_test_name: score.test_name,
-          p_test_date: score.test_date,
-        })
-
-        if (avgError) {
-          console.error("平均点取得エラー:", avgError)
-          continue
-        }
-
-        if (!avgData || avgData.length === 0) {
-          console.warn(`No average data found for test: ${score.test_name}, date: ${score.test_date}`)
-          continue
-        }
-
-        testAverages[`${score.test_name}_${score.test_date}`] = avgData[0]
-      } catch (err) {
-        console.error(`Error getting averages for test ${score.test_name}:`, err)
-      }
-    }
-
-    // 3. 各テストの順位を計算
-    const testRankings: Record<string, number> = {}
-    for (const score of studentScores) {
-      try {
-        console.log(`Getting rank for student ${studentId} in test: ${score.test_name}, date: ${score.test_date}`)
-
-        const { data: rankData, error: rankError } = await supabase.rpc("get_student_rank", {
-          p_student_id: studentId,
-          p_test_name: score.test_name,
-          p_test_date: score.test_date,
-        })
-
-        if (rankError) {
-          console.error("順位取得エラー:", rankError)
-          continue
-        }
-
-        if (!rankData || rankData.length === 0) {
-          console.warn(`No rank data found for student ${studentId} in test: ${score.test_name}`)
-          continue
-        }
-
-        testRankings[`${score.test_name}_${score.test_date}`] = rankData[0].rank
-      } catch (err) {
-        console.error(`Error getting rank for test ${score.test_name}:`, err)
-      }
-    }
-
-    // 4. 総合順位を計算（エラーハンドリング強化）
-    let totalRank = null
-    let avgRank = null
-    try {
-      console.log(`Getting total rank for student ${studentId}`)
-
-      const { data: totalRankData, error: totalRankError } = await supabase.rpc("get_student_total_rank", {
-        p_student_id: studentId,
-      })
-
-      if (totalRankError) {
-        console.error("総合順位取得エラー:", totalRankError)
-        // RPC関数エラーでも処理を続行
-      } else if (totalRankData && totalRankData.length > 0 && totalRankData[0].rank) {
-        totalRank = totalRankData[0].rank
-        // avg_rankは現在の関数では返されないため、nullのまま
-      }
-    } catch (err) {
-      console.error(`Error getting total rank for student ${studentId}:`, err)
-      // エラーでも処理を続行
-    }
-
-    // 5. 前回のテスト結果との比較
-    const sortedScores = [...studentScores].sort(
-      (a, b) => new Date(a.test_date).getTime() - new Date(b.test_date).getTime(),
-    )
-    const previousScores: Record<string, TestScore | undefined> = {}
-
-    for (let i = 1; i < sortedScores.length; i++) {
-      previousScores[sortedScores[i].test_name] = sortedScores[i - 1]
-    }
-
-    // 6. 結果を組み合わせる
-    return studentScores.map((score) => {
-      const testKey = `${score.test_name}_${score.test_date}`
-      const avgData = testAverages[testKey] || {
-        avg_section_a: 0,
-        avg_section_b: 0,
-        avg_section_c: 0,
-        avg_section_d: 0,
-        avg_section_ad: 0,
-        avg_section_bc: 0,
-        avg_total_score: 0,
-      }
-
-      const prevScore = previousScores[score.test_name]
-      const previousScoreData = prevScore
-        ? {
-            section_kanri_change: (score.section_kanri || 0) - (prevScore.section_kanri || 0),
-            section_kaibou_change: (score.section_kaibou || 0) - (prevScore.section_kaibou || 0),
-            section_gakkou_change: (score.section_gakkou || 0) - (prevScore.section_gakkou || 0),
-            section_rikou_change: (score.section_rikou || 0) - (prevScore.section_rikou || 0),
-            section_yushou_change: (score.section_yushou || 0) - (prevScore.section_yushou || 0),
-            section_shikan_change: (score.section_shikan || 0) - (prevScore.section_shikan || 0),
-            section_kyousei_change: (score.section_kyousei || 0) - (prevScore.section_kyousei || 0),
-            section_shouni_change: (score.section_shouni || 0) - (prevScore.section_shouni || 0),
-            total_score_change: (score.total_score || 0) - (prevScore.total_score || 0),
-          }
-        : undefined
-
-      return {
-        ...score,
-        ...avgData,
-        rank: testRankings[testKey] || 0,
-        total_rank: totalRank,
-        avg_rank: avgRank,
-        previous_scores: previousScoreData,
+    // APIルートを通じてサーバーサイドでデータを取得
+    const response = await fetch(`/api/student-scores-secure?student_id=${studentId}`, {
+      headers: {
+        'x-student-session-id': sessionStudentId || ''
       }
     })
+    const result = await response.json()
+
+    if (!result.success) {
+      console.error("Student scores API error:", result.error)
+      return []
+    }
+
+    return result.data || []
   } catch (error) {
     console.error("getStudentScoresWithStats error:", error)
     return []
@@ -243,6 +121,10 @@ export async function getStudentScoresWithStats(studentId: string): Promise<Test
 
 // 特定のテストの全学生の成績と順位を取得
 export async function getTestRankings(testName: string, testDate: string): Promise<TestScore[]> {
+  // TODO: APIエンドポイント経由でデータを取得するように修正が必要
+  console.log(`Getting rankings for test: ${testName}, date: ${testDate}`)
+  return []
+  /*
   const supabase = createClientComponentClient()
   console.log(`Getting rankings for test: ${testName}, date: ${testDate}`)
 
@@ -277,10 +159,15 @@ export async function getTestRankings(testName: string, testDate: string): Promi
     console.error(`Error getting rankings for test ${testName}:`, err)
     return []
   }
+  */
 }
 
 // 総合ランキングを取得
 export async function getTotalRankings(): Promise<any[]> {
+  // TODO: APIエンドポイント経由でデータを取得するように修正が必要
+  console.log("Getting total rankings")
+  return []
+  /*
   const supabase = createClientComponentClient()
   console.log("Getting total rankings")
 
@@ -338,10 +225,15 @@ export async function getTotalRankings(): Promise<any[]> {
     console.error("Error getting total rankings:", err)
     return []
   }
+  */
 }
 
 // テスト統計情報を取得
 export async function getTestAnalytics(testName: string, testDate: string): Promise<TestAnalytics | null> {
+  // TODO: APIエンドポイント経由でデータを取得するように修正が必要
+  console.log(`Getting test analytics for ${testName} on ${testDate}`)
+  return null
+  /*
   const supabase = createClientComponentClient()
   console.log(`Getting test analytics for ${testName} on ${testDate}`)
 
@@ -400,10 +292,15 @@ export async function getTestAnalytics(testName: string, testDate: string): Prom
     console.error("Error getting test analytics:", err)
     return null
   }
+  */
 }
 
 // 偏差値付きランキングを取得
 export async function getTestRankingsWithDeviation(testName: string, testDate: string): Promise<TestRankingWithDeviation[]> {
+  // TODO: APIエンドポイント経由でデータを取得するように修正が必要
+  console.log(`Getting test rankings with deviation for ${testName} on ${testDate}`)
+  return []
+  /*
   const supabase = createClientComponentClient()
   console.log(`Getting test rankings with deviation for ${testName} on ${testDate}`)
 
@@ -429,10 +326,15 @@ export async function getTestRankingsWithDeviation(testName: string, testDate: s
     console.error("Error getting deviation rankings:", err)
     return []
   }
+  */
 }
 
 // 分野別ランキングを取得（セクション指定）
 export async function getSectionRankings(testName: string, testDate: string, section: 'a' | 'b' | 'c' | 'd' | 'ad' | 'bc'): Promise<SectionRanking[]> {
+  // TODO: APIエンドポイント経由でデータを取得するように修正が必要
+  console.log(`Getting section ${section} rankings for ${testName} on ${testDate}`)
+  return []
+  /*
   const supabase = createClientComponentClient()
   console.log(`Getting section ${section} rankings for ${testName} on ${testDate}`)
 
@@ -468,4 +370,73 @@ export async function getSectionRankings(testName: string, testDate: string, sec
     console.error(`Error getting section ${section} rankings:`, err)
     return []
   }
+  */
+}
+
+// ヘルパー関数
+function avg(arr: number[]): number {
+  return arr.reduce((sum, val) => sum + val, 0) / arr.length
+}
+
+function stdDev(arr: number[], average: number): number {
+  const variance = arr.reduce((sum, val) => sum + Math.pow(val - average, 2), 0) / arr.length
+  return Math.sqrt(variance)
+}
+
+// テストタイプ別の問題数とセクション構成
+export const TEST_CONFIGURATIONS = {
+  '100q': {
+    total_questions: 100,
+    passing_rate: 0.6, // 60%
+    passing_score: 60,
+    sections: {
+      section_kanri: { max: 9, name: '管理' },
+      section_kaibou: { max: 12, name: '解剖' },
+      section_gakkou: { max: 9, name: '顎口' },
+      section_rikou: { max: 16, name: '理工' },
+      section_yushou: { max: 18, name: '有床' },
+      section_shikan: { max: 18, name: '歯冠' },
+      section_kyousei: { max: 9, name: '矯正' },
+      section_shouni: { max: 9, name: '小児' }
+    }
+  },
+  '80q': {
+    total_questions: 80,
+    passing_rate: 0.6, // 60%
+    passing_score: 48, // 80 * 0.6
+    sections: {
+      section_kanri: { max: 3, name: '管理' },
+      section_kaibou: { max: 10, name: '解剖' },
+      section_gakkou: { max: 5, name: '顎口' },
+      section_rikou: { max: 14, name: '理工' },
+      section_yushou: { max: 20, name: '有床' },
+      section_shikan: { max: 18, name: '歯冠' },
+      section_kyousei: { max: 5, name: '矯正' },
+      section_shouni: { max: 5, name: '小児' }
+    }
+  }
+} as const
+
+export type TestType = keyof typeof TEST_CONFIGURATIONS
+
+// 合格判定関数
+export function isPassingScore(score: TestScore): boolean {
+  const config = TEST_CONFIGURATIONS[score.test_type || '100q']
+  return score.total_score >= config.passing_score
+}
+
+// テストタイプに応じた合格点を取得
+export function getPassingScore(testType: TestType): number {
+  return TEST_CONFIGURATIONS[testType].passing_score
+}
+
+// テストタイプに応じた最大点数を取得
+export function getMaxScore(testType: TestType): number {
+  return TEST_CONFIGURATIONS[testType].total_questions
+}
+
+// セクション別の最大点数を取得
+export function getSectionMaxScore(testType: TestType, sectionKey: string): number {
+  const config = TEST_CONFIGURATIONS[testType]
+  return config.sections[sectionKey as keyof typeof config.sections]?.max || 0
 }

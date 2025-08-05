@@ -47,6 +47,8 @@ export default function DashboardPage({ params }: { params: Promise<{ id: string
 
         // 学生の成績と統計情報を取得
         const scoresData = await getStudentScoresWithStats(studentData.student_id)
+        console.log("Fetched scores data:", scoresData)
+        console.log("Number of scores:", scoresData.length)
         setScores(scoresData)
       } catch (err) {
         console.error("Dashboard error:", err)
