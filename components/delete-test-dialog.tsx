@@ -29,6 +29,7 @@ export function DeleteTestDialog({ testName, testDate, onDeleted }: DeleteTestDi
   const handleDelete = async () => {
     setIsDeleting(true)
     try {
+      console.log("[削除リクエスト] testName:", testName, "testDate:", testDate)
       const response = await fetch("/api/delete-test-results", {
         method: "POST",
         headers: {
@@ -38,6 +39,7 @@ export function DeleteTestDialog({ testName, testDate, onDeleted }: DeleteTestDi
       })
 
       const result = await response.json()
+      console.log("[delete-test-results API result]", result)
 
       if (!response.ok) {
         throw new Error(result.error || "削除に失敗しました")

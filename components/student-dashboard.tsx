@@ -255,7 +255,11 @@ export default function StudentDashboard({
 
   // 成績の傾向分析
   const getTrend = () => {
-    if (scores.length < 2) return { trend: "neutral", message: "まだ傾向を分析するのに十分なデータがありません" }
+    if (scores.length < 2) return { 
+      trend: "neutral", 
+      message: "データが1回分のみです。次回の模試で傾向を分析できます。", 
+      icon: <Minus className="h-5 w-5 text-blue-500" />
+    }
 
     const sortedScores = [...scores].sort((a, b) => new Date(a.test_date).getTime() - new Date(b.test_date).getTime())
     const recentScores = sortedScores.slice(-3) // 最新の3つのスコア
@@ -265,23 +269,24 @@ export default function StudentDashboard({
     const previousScore = recentScores[recentScores.length - 2].total_score || 0
 
     const difference = latestScore - previousScore
+    const passingScore = getPassingScore(recentScores[recentScores.length - 1].test_type || '100q')
 
     if (difference > 5) {
       return {
         trend: "up",
-        message: `前回より${difference.toFixed(1)}点上昇しています。このまま頑張りましょう！`,
+        message: `前回より${difference}点向上しました！📈 ${latestScore >= passingScore ? '合格ラインを維持しています。' : `合格まであと${passingScore - latestScore}点です。`}`,
         icon: <TrendingUp className="h-5 w-5 text-green-500" />,
       }
     } else if (difference < -5) {
       return {
         trend: "down",
-        message: `前回より${Math.abs(difference).toFixed(1)}点下降しています。復習を強化しましょう。`,
+        message: `前回より${Math.abs(difference)}点下降しました。📉 ${latestScore >= passingScore ? '合格ラインは維持していますが、復習を強化しましょう。' : '弱点分野を重点的に学習し、次回の向上を目指しましょう。'}`,
         icon: <TrendingDown className="h-5 w-5 text-red-500" />,
       }
     } else {
       return {
         trend: "neutral",
-        message: "成績は安定しています。引き続き学習を続けましょう。",
+        message: `成績は安定しています。${latestScore >= passingScore ? '合格ラインを維持しており、さらなる高得点を目指しましょう。' : `合格まであと${passingScore - latestScore}点です。継続的な学習で目標達成を目指しましょう。`}`,
         icon: <Minus className="h-5 w-5 text-blue-500" />,
       }
     }
@@ -290,14 +295,18 @@ export default function StudentDashboard({
   const trend = getTrend()
 
   // テストタイプに応じた合格判定
+  const passingScore = getPassingScore(latestScore.test_type || '100q')
+  const pointsToPass = Math.max(0, passingScore - (latestScore.total_score || 0))
   const passStatus = isPassingScore(latestScore)
     ? {
         status: "pass",
-        message: `現在の成績は合格ライン（${getPassingScore(latestScore.test_type || '100q')}点）を超えています。このまま維持しましょう！`,
+        pointsToPass: 0,
+        message: `現在の成績は合格ライン（${passingScore}点）を${(latestScore.total_score || 0) - passingScore}点上回っています。この調子で頑張りましょう！`,
       }
     : {
-        status: "fail",
-        message: `合格には、あと${Math.max(0, getPassingScore(latestScore.test_type || '100q') - (latestScore.total_score || 0))}点必要です。もう少し頑張りましょう！`,
+        status: "fail", 
+        pointsToPass: pointsToPass,
+        message: `合格まであと${pointsToPass}点です。${pointsToPass <= 10 ? '集中的な復習で達成可能です！' : '計画的な学習で目標に向かいましょう。'}`,
       }
 
   // 実績の達成回数を計算
@@ -506,7 +515,9 @@ export default function StudentDashboard({
                               : "bg-amber-100 text-amber-800"
                           }`}
                         >
-                          {passStatus.status === "pass" ? "合格ライン突破" : "もう少し"}
+                          {passStatus.status === "pass" 
+                            ? "合格ライン達成" 
+                            : `あと${passStatus.pointsToPass}点で合格`}
                         </span>
                       </div>
                     </div>
@@ -811,7 +822,7 @@ export default function StudentDashboard({
                     variant={passStatus.status === "pass" ? "default" : "outline"}
                     className={passStatus.status === "pass" ? "bg-green-500" : ""}
                   >
-                    {passStatus.status === "pass" ? "合格ライン超え" : "もう少し"}
+                    {passStatus.status === "pass" ? "合格ライン達成" : `あと${passStatus.pointsToPass}点`}
                   </Badge>
                 </div>
               </CardHeader>
