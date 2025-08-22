@@ -598,6 +598,10 @@ export default function AdminPage() {
                   <Button variant="outline" size="sm" onClick={fetchStudents}>
                     更新
                   </Button>
+                  <Button variant="outline" size="sm" onClick={exportStudentsCSV} disabled={students.length===0}>
+                    <Download className="mr-2 h-4 w-4" />
+                    CSVエクスポート
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent>
