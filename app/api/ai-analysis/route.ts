@@ -57,10 +57,10 @@ async function generateGeminiAnalysis(studentScores: any[], studentName: string,
     const testDate = new Date(score.test_date).toLocaleDateString('ja-JP')
     return `
 【${score.test_name}】(${testDate})
-- 衛生管理: ${score.section_kanri || 0}点
-- 人体解剖: ${score.section_kaibou || 0}点  
-- 学校保健: ${score.section_gakkou || 0}点
-- 理工学概論: ${score.section_rikou || 0}点
+- 管理: ${score.section_kanri || 0}点
+- 解剖: ${score.section_kaibou || 0}点  
+- 顎口腔: ${score.section_gakkou || 0}点
+- 理工学: ${score.section_rikou || 0}点
 - 有床義歯: ${score.section_yushou || 0}点
 - 歯冠修復: ${score.section_shikan || 0}点
 - 矯正: ${score.section_kyousei || 0}点
@@ -168,10 +168,10 @@ function generateFallbackAnalysis(latestScore: any, previousScore: any) {
 
   // 4. 分野別分析
   const sections = [
-    { name: '衛生管理', score: latestScore.section_kanri },
-    { name: '人体解剖', score: latestScore.section_kaibou },
-    { name: '学校保健', score: latestScore.section_gakkou },
-    { name: '理工学概論', score: latestScore.section_rikou },
+  { name: '管理', score: latestScore.section_kanri },
+  { name: '解剖', score: latestScore.section_kaibou },
+  { name: '顎口腔', score: latestScore.section_gakkou },
+  { name: '理工学', score: latestScore.section_rikou },
     { name: '有床義歯', score: latestScore.section_yushou },
     { name: '歯冠修復', score: latestScore.section_shikan },
     { name: '矯正', score: latestScore.section_kyousei },
