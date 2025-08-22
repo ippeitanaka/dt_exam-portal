@@ -121,9 +121,21 @@ export async function getStudentScoresWithStats(studentId: string): Promise<Test
 
 // 特定のテストの全学生の成績と順位を取得
 export async function getTestRankings(testName: string, testDate: string): Promise<TestScore[]> {
-  // TODO: APIエンドポイント経由でデータを取得するように修正が必要
   console.log(`Getting rankings for test: ${testName}, date: ${testDate}`)
-  return []
+  try {
+    const res = await fetch(`/api/test-rankings?test_name=${encodeURIComponent(testName)}&test_date=${encodeURIComponent(testDate)}`, {
+      method: 'GET'
+    })
+    const json = await res.json()
+    if (!json.success) {
+      console.error('getTestRankings API error', json.error)
+      return []
+    }
+    return json.data || []
+  } catch (e) {
+    console.error('getTestRankings fetch error', e)
+    return []
+  }
   /*
   const supabase = createClientComponentClient()
   console.log(`Getting rankings for test: ${testName}, date: ${testDate}`)
@@ -164,9 +176,19 @@ export async function getTestRankings(testName: string, testDate: string): Promi
 
 // 総合ランキングを取得
 export async function getTotalRankings(): Promise<any[]> {
-  // TODO: APIエンドポイント経由でデータを取得するように修正が必要
   console.log("Getting total rankings")
-  return []
+  try {
+    const res = await fetch('/api/total-rankings', { method: 'GET' })
+    const json = await res.json()
+    if (!json.success) {
+      console.error('getTotalRankings API error', json.error)
+      return []
+    }
+    return json.data || []
+  } catch (e) {
+    console.error('getTotalRankings fetch error', e)
+    return []
+  }
   /*
   const supabase = createClientComponentClient()
   console.log("Getting total rankings")

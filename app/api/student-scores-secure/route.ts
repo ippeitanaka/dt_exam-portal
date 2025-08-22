@@ -133,10 +133,58 @@ export async function GET(request: NextRequest) {
         ...score,
         ...avgData,
         rank: testRankings[testKey] || 0,
-        total_rank: null,
-        avg_rank: null,
+        total_rank: null, // 後で総合順位計算
+        avg_rank: null,   // 平均順位（未使用）
       }
     })
+
+    // --- 総合順位（平均点ベース）計算を追加 ---
+    try {
+      // 全学生の総合平均点を取得
+      const { data: allScores, error: allError } = await supabase
+        .from('test_scores')
+        .select('student_id, total_score')
+
+      if (!allError && allScores && allScores.length > 0) {
+        const agg: Record<string, { sum: number; count: number }> = {}
+        for (const row of allScores) {
+          if (!agg[row.student_id]) agg[row.student_id] = { sum: 0, count: 0 }
+          agg[row.student_id].sum += row.total_score || 0
+          agg[row.student_id].count += 1
+        }
+        const list = Object.entries(agg).map(([sid, v]) => ({
+          student_id: sid,
+          avg: v.sum / v.count
+        }))
+        list.sort((a, b) => b.avg - a.avg)
+        let lastScore: number | null = null
+        let lastRank = 0
+        const rankMap: Record<string, { rank: number; avg: number }> = {}
+        list.forEach((item, idx) => {
+          if (lastScore === null || item.avg !== lastScore) {
+            lastRank = idx + 1
+            lastScore = item.avg
+          }
+          rankMap[item.student_id] = { rank: lastRank, avg: item.avg }
+        })
+
+        // 対象学生の平均点
+        const self = rankMap[studentId]
+        if (self) {
+          // scoresWithStats の total_rank と total_score を平均値に置換（総合表示用）
+          for (const s of scoresWithStats) {
+            s.total_rank = self.rank
+          }
+          // ダッシュボード表示では latestScore.total_score を平均点として用いるため
+          // 先頭レコードの total_score を平均に差し替える（オリジナル得点は保持したいなら別フィールド推奨）
+          if (scoresWithStats.length > 0) {
+            ;(scoresWithStats[0] as any).total_score = self.avg
+          }
+        }
+      }
+    } catch (e) {
+      console.error('総合順位計算エラー:', e)
+    }
 
     return NextResponse.json({
       success: true,

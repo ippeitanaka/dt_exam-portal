@@ -271,22 +271,24 @@ export default function StudentDashboard({
     const difference = latestScore - previousScore
     const passingScore = getPassingScore(recentScores[recentScores.length - 1].test_type || '100q')
 
-    if (difference > 5) {
+  const diffDisplay = difference.toFixed(1)
+  const needDisplay = (passingScore - latestScore).toFixed(1)
+  if (difference > 5) {
       return {
         trend: "up",
-        message: `前回より${difference}点向上しました！📈 ${latestScore >= passingScore ? '合格ラインを維持しています。' : `合格まであと${passingScore - latestScore}点です。`}`,
+    message: `前回より${diffDisplay}点向上しました！📈 ${latestScore >= passingScore ? '合格ラインを維持しています。' : `合格まであと${needDisplay}点です。`}`,
         icon: <TrendingUp className="h-5 w-5 text-green-500" />,
       }
     } else if (difference < -5) {
       return {
         trend: "down",
-        message: `前回より${Math.abs(difference)}点下降しました。📉 ${latestScore >= passingScore ? '合格ラインは維持していますが、復習を強化しましょう。' : '弱点分野を重点的に学習し、次回の向上を目指しましょう。'}`,
+    message: `前回より${Math.abs(difference).toFixed(1)}点下降しました。📉 ${latestScore >= passingScore ? '合格ラインは維持していますが、復習を強化しましょう。' : '弱点分野を重点的に学習し、次回の向上を目指しましょう。'}`,
         icon: <TrendingDown className="h-5 w-5 text-red-500" />,
       }
     } else {
       return {
         trend: "neutral",
-        message: `成績は安定しています。${latestScore >= passingScore ? '合格ラインを維持しており、さらなる高得点を目指しましょう。' : `合格まであと${passingScore - latestScore}点です。継続的な学習で目標達成を目指しましょう。`}`,
+    message: `成績は安定しています。${latestScore >= passingScore ? '合格ラインを維持しており、さらなる高得点を目指しましょう。' : `合格まであと${needDisplay}点です。継続的な学習で目標達成を目指しましょう。`}`,
         icon: <Minus className="h-5 w-5 text-blue-500" />,
       }
     }
@@ -296,17 +298,18 @@ export default function StudentDashboard({
 
   // テストタイプに応じた合格判定
   const passingScore = getPassingScore(latestScore.test_type || '100q')
-  const pointsToPass = Math.max(0, passingScore - (latestScore.total_score || 0))
+  const rawPointsToPass = Math.max(0, passingScore - (latestScore.total_score || 0))
+  const pointsToPass = Number(rawPointsToPass.toFixed(1))
   const passStatus = isPassingScore(latestScore)
     ? {
         status: "pass",
         pointsToPass: 0,
-        message: `現在の成績は合格ライン（${passingScore}点）を${(latestScore.total_score || 0) - passingScore}点上回っています。この調子で頑張りましょう！`,
+  message: `現在の成績は合格ライン（${passingScore}点）を${((latestScore.total_score || 0) - passingScore).toFixed(1)}点上回っています。この調子で頑張りましょう！`,
       }
     : {
         status: "fail", 
         pointsToPass: pointsToPass,
-        message: `合格まであと${pointsToPass}点です。${pointsToPass <= 10 ? '集中的な復習で達成可能です！' : '計画的な学習で目標に向かいましょう。'}`,
+  message: `合格まであと${pointsToPass.toFixed(1)}点です。${pointsToPass <= 10 ? '集中的な復習で達成可能です！' : '計画的な学習で目標に向かいましょう。'}`,
       }
 
   // 実績の達成回数を計算

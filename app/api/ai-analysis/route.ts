@@ -113,7 +113,8 @@ ${scoresText}
 function generateFallbackAnalysis(latestScore: any, previousScore: any) {
   const passingScore = latestScore.test_type === "200q" ? 120 : 60
   const totalPossible = latestScore.test_type === "200q" ? 200 : 100
-  const pointsToPass = Math.max(0, passingScore - latestScore.total_score)
+  const rawPointsToPass = Math.max(0, passingScore - latestScore.total_score)
+  const pointsToPass = Number(rawPointsToPass.toFixed(1))
   
   let analysis = ""
 
@@ -140,9 +141,9 @@ function generateFallbackAnalysis(latestScore: any, previousScore: any) {
 
   // 2. 合格ラインとの比較
   if (pointsToPass === 0) {
-    analysis += `## 🎯 合格ライン達成！\n合格ラインを${latestScore.total_score - passingScore}点上回っています。この成果を維持し、さらなる高得点を目指しましょう。\n\n`
+    analysis += `## 🎯 合格ライン達成！\n合格ラインを${(latestScore.total_score - passingScore).toFixed(1)}点上回っています。この成果を維持し、さらなる高得点を目指しましょう。\n\n`
   } else {
-    analysis += `## 🎯 合格まで: あと${pointsToPass}点\n`
+    analysis += `## 🎯 合格まで: あと${pointsToPass.toFixed(1)}点\n`
     if (pointsToPass <= 10) {
       analysis += "あと少しで合格ラインです！集中的な復習で十分到達可能です。\n\n"
     } else if (pointsToPass <= 20) {
@@ -154,12 +155,12 @@ function generateFallbackAnalysis(latestScore: any, previousScore: any) {
 
   // 3. 前回との比較
   if (previousScore) {
-    const scoreDiff = latestScore.total_score - previousScore.total_score
+  const scoreDiff = Number((latestScore.total_score - previousScore.total_score).toFixed(1))
     analysis += "## 📊 前回との比較\n"
     if (scoreDiff > 0) {
-      analysis += `前回より${scoreDiff}点向上しています！📈 この調子で継続しましょう。\n\n`
+      analysis += `前回より${scoreDiff.toFixed(1)}点向上しています！📈 この調子で継続しましょう。\n\n`
     } else if (scoreDiff < 0) {
-      analysis += `前回より${Math.abs(scoreDiff)}点下降しています。📉 復習を強化し、次回は向上を目指しましょう。\n\n`
+      analysis += `前回より${Math.abs(scoreDiff).toFixed(1)}点下降しています。📉 復習を強化し、次回は向上を目指しましょう。\n\n`
     } else {
       analysis += "前回と同じ点数です。安定していますが、さらなる向上を目指しましょう。\n\n"
     }

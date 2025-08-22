@@ -267,63 +267,56 @@ export default function AdminPage() {
 
   // CSVエクスポート機能
   const exportStudentsCSV = () => {
-    if (students.length === 0) return
-
-    // CSVヘッダー
-    const headers = ["名前", "学生ID", "パスワード"]
-
-    // データ行の作成
-    const rows = students.map((student) => [student.name || "", student.student_id, student.password])
-
-    // CSVデータの作成
-    const csvContent = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n")
-
-    // ダウンロード
-    downloadCSV(csvContent, "students.csv")
+    if (students.length === 0) {
+      toast({ title: '情報', description: 'エクスポート対象の学生データがありません' })
+      return
+    }
+    const headers = ["名前", "学生ID", "メール", "パスワード"]
+    const rows = students.map((s) => [s.name || "", s.student_id || "", s.email || "", s.password || ""]) 
+    const csv = buildCsv([headers, ...rows])
+    downloadCSV(csv, 'students.csv')
   }
 
   const exportScoresCSV = () => {
-    if (scores.length === 0) return
-
-    // CSVヘッダー
+    if (scores.length === 0) {
+      toast({ title: '情報', description: 'エクスポート対象の成績データがありません' })
+      return
+    }
     const headers = [
-      "学生ID",
-      "学生名",
-      "テスト名",
-      "テスト日",
-      "A問題（一般）",
-      "B問題（必修）",
-      "C問題（必修症例）",
-      "D問題（一般症例）",
-      "AD問題（一般合計）",
-      "BC問題（必修合計）",
-      "合計",
+      '学生ID','学生名','テスト名','テスト日','管理','解剖','顎口','理工','有床','歯冠','矯正','小児','合計'
     ]
-
-    // データ行の作成
-    const rows = scores.map((score) => [
-      score.student_id,
-      score.name || "",
-      score.test_name,
-      score.test_date,
-      score.section_a || "",
-      score.section_b || "",
-      score.section_c || "",
-      score.section_d || "",
-      score.section_ad || "",
-      score.section_bc || "",
-      score.total_score || "",
+    const rows = scores.map(sc => [
+      sc.student_id || '',
+      sc.name || '',
+      sc.test_name || '',
+      sc.test_date || '',
+      sc.section_kanri ?? '',
+      sc.section_kaibou ?? '',
+      sc.section_gakkou ?? '',
+      sc.section_rikou ?? '',
+      sc.section_yushou ?? '',
+      sc.section_shikan ?? '',
+      sc.section_kyousei ?? '',
+      sc.section_shouni ?? '',
+      sc.total_score ?? ''
     ])
+    const csv = buildCsv([headers, ...rows])
+    downloadCSV(csv, 'test_scores.csv')
+  }
 
-    // CSVデータの作成
-    const csvContent = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n")
-
-    // ダウンロード
-    downloadCSV(csvContent, "test_scores.csv")
+  // CSV生成（値のエスケープ & UTF-8 BOM付与）
+  function buildCsv(rows: (string|number)[][]): string {
+    const escape = (val: any) => {
+      const s = (val ?? '').toString()
+      if (/[",\n]/.test(s)) return '"' + s.replace(/"/g,'""') + '"'
+      return s
+    }
+    return rows.map(r=>r.map(escape).join(',')).join('\n')
   }
 
   const downloadCSV = (content: string, filename: string) => {
-    const blob = new Blob([content], { type: "text/csv;charset=utf-8;" })
+    const BOM = '\uFEFF' // Excel用BOM
+    const blob = new Blob([BOM + content], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement("a")
     link.setAttribute("href", url)
