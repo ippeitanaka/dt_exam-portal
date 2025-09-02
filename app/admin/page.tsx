@@ -38,6 +38,7 @@ export default function AdminPage() {
   const [scores, setScores] = useState<any[]>([])
   const [isLoadingStudents, setIsLoadingStudents] = useState(false)
   const [isLoadingScores, setIsLoadingScores] = useState(false)
+  const [isCheckingDatabase, setIsCheckingDatabase] = useState(false)
   const { toast } = useToast()
 
   // Score form state
@@ -467,8 +468,9 @@ export default function AdminPage() {
                   </p>
                   <Button 
                     onClick={async () => {
+                      setIsCheckingDatabase(true)
                       try {
-                        const response = await fetch('/api/fix-database-structure', {
+                        const response = await fetch('/api/database-structure-check', {
                           method: 'POST',
                           headers: { 'Content-Type': 'application/json' }
                         })
@@ -477,11 +479,16 @@ export default function AdminPage() {
                         if (result.success) {
                           toast({
                             title: "データベース構造チェック完了",
-                            description: `学生インポート: ${result.canImportStudents ? '✅ 使用可能' : '❌ 要修正'}, テスト結果インポート: ${result.canImportTestResults ? '✅ 使用可能' : '❌ 要修正'}`,
+                            description: `学生テーブル: ${result.summary.studentsTable}, テスト結果テーブル: ${result.summary.testScoresTable}`,
                           })
                           
                           if (result.recommendations?.length > 0) {
                             console.log("修正提案:", result.recommendations)
+                            toast({
+                              title: "修正提案",
+                              description: result.recommendations.join(', '),
+                              variant: "default",
+                            })
                           }
                         } else {
                           toast({
@@ -491,18 +498,31 @@ export default function AdminPage() {
                           })
                         }
                       } catch (error) {
+                        console.error("Database check error:", error)
                         toast({
                           title: "エラー",
-                          description: "構造チェックに失敗しました",
+                          description: "構造チェックに失敗しました。ネットワークまたはサーバーエラーです。",
                           variant: "destructive",
                         })
+                      } finally {
+                        setIsCheckingDatabase(false)
                       }
                     }}
                     variant="outline" 
                     size="sm"
+                    disabled={isCheckingDatabase}
                   >
-                    <AlertCircle className="h-4 w-4 mr-2" />
-                    データベース構造をチェック
+                    {isCheckingDatabase ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        チェック中...
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="h-4 w-4 mr-2" />
+                        データベース構造をチェック
+                      </>
+                    )}
                   </Button>
                 </div>
               </CardContent>
