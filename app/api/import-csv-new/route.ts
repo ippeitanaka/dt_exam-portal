@@ -149,21 +149,46 @@ export async function POST(request: Request) {
         if (!studentExists) {
           // 学生が存在しない場合は作成
           console.log(`学生ID ${studentId} を新規作成中...`)
-          const { error: createStudentError } = await supabaseAdmin
-            .from("students")
-            .insert({
-              student_id: studentId,
-              name: name,
-              email: `${studentId}@example.com`, // デフォルトメール
-              password: studentId // デフォルトパスワードは学生ID
-            })
+          
+          try {
+            const { error: createStudentError } = await supabaseAdmin
+              .from("students")
+              .insert({
+                student_id: studentId,
+                name: name,
+                email: `${studentId}@example.com`, // デフォルトメール
+                password: studentId // デフォルトパスワードは学生ID
+              })
 
-          if (createStudentError) {
-            console.log(`学生作成エラー: ${createStudentError.message}`)
-            errors.push(`行 ${i + 1}: 学生データの作成に失敗しました: ${createStudentError.message}`)
+            if (createStudentError) {
+              // emailカラムが存在しない場合は、emailなしで再試行
+              if (createStudentError.message.includes('email') || createStudentError.message.includes('column')) {
+                console.log('emailカラムが存在しないため、emailなしで学生を作成します')
+                const { error: retryError } = await supabaseAdmin
+                  .from("students")
+                  .insert({
+                    student_id: studentId,
+                    name: name,
+                    password: studentId
+                  })
+                
+                if (retryError) {
+                  console.log(`学生作成エラー (retry): ${retryError.message}`)
+                  errors.push(`行 ${i + 1}: 学生データの作成に失敗しました: ${retryError.message}`)
+                  continue
+                }
+              } else {
+                console.log(`学生作成エラー: ${createStudentError.message}`)
+                errors.push(`行 ${i + 1}: 学生データの作成に失敗しました: ${createStudentError.message}`)
+                continue
+              }
+            }
+            console.log(`学生ID ${studentId} の作成完了`)
+          } catch (studentCreateError) {
+            console.log(`学生作成例外: ${studentCreateError}`)
+            errors.push(`行 ${i + 1}: 学生データの作成で例外が発生しました`)
             continue
           }
-          console.log(`学生ID ${studentId} の作成完了`)
         }
 
         // 新しい分野構造でのデータを追加
@@ -236,30 +261,87 @@ export async function POST(request: Request) {
           console.log("データベースに挿入開始...")
           console.log("挿入データ:", JSON.stringify(newRecords, null, 2))
           
-          const { data, error } = await supabaseAdmin.from("test_scores").insert(newRecords).select()
+          try {
+            const { data, error } = await supabaseAdmin.from("test_scores").insert(newRecords).select()
 
-          if (error) {
-            console.error("バッチ挿入エラー:", error)
+            if (error) {
+              console.error("バッチ挿入エラー:", error)
+              
+              // 分野カラムが存在しない場合のフォールバック処理
+              if (error.message.includes('section_') || error.message.includes('column')) {
+                console.log("分野別カラムが存在しない可能性があります。基本データのみで再試行...")
+                
+                const basicRecords = newRecords.map(record => ({
+                  student_id: record.student_id,
+                  name: record.name,
+                  test_name: record.test_name,
+                  test_date: record.test_date,
+                  total_score: record.total_score,
+                  max_score: record.max_score
+                }))
+                
+                const { data: basicData, error: basicError } = await supabaseAdmin
+                  .from("test_scores")
+                  .insert(basicRecords)
+                  .select()
+                
+                if (basicError) {
+                  console.error("基本データ挿入エラー:", basicError)
+                  return NextResponse.json(
+                    {
+                      error: "テスト結果の挿入に失敗しました（基本データ）",
+                      details: basicError.message,
+                      code: basicError.code,
+                      hint: "データベースのテーブル構造を確認してください",
+                    },
+                    { status: 500 }
+                  )
+                }
+                
+                console.log("基本データ挿入成功:", basicData)
+                
+                // 成功した結果を追加
+                for (const item of basicData) {
+                  results.push({
+                    studentId: item.student_id,
+                    name: item.name,
+                    resultId: item.id,
+                  })
+                }
+                
+                errors.push("注意: 分野別得点カラムが存在しないため、基本データ（総得点のみ）で登録されました。")
+              } else {
+                return NextResponse.json(
+                  {
+                    error: "テスト結果の挿入に失敗しました",
+                    details: error.message,
+                    code: error.code,
+                    hint: error.hint,
+                  },
+                  { status: 500 }
+                )
+              }
+            } else {
+              console.log("挿入成功:", data)
+
+              // 成功した結果を追加
+              for (const item of data) {
+                results.push({
+                  studentId: item.student_id,
+                  name: item.name,
+                  resultId: item.id,
+                })
+              }
+            }
+          } catch (insertError) {
+            console.error("挿入処理例外:", insertError)
             return NextResponse.json(
               {
-                error: "テスト結果の挿入に失敗しました",
-                details: error.message,
-                code: error.code,
-                hint: error.hint,
+                error: "データベースの挿入処理で例外が発生しました",
+                details: insertError instanceof Error ? insertError.message : "不明なエラー",
               },
               { status: 500 }
             )
-          }
-
-          console.log("挿入成功:", data)
-
-          // 成功した結果を追加
-          for (const item of data) {
-            results.push({
-              studentId: item.student_id,
-              name: item.name,
-              resultId: item.id,
-            })
           }
         }
 

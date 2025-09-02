@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs"
 import { useToast } from "@/hooks/use-toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertCircle, Loader2, FileText, Download, LogOut, User } from "lucide-react"
+import { AlertCircle, Loader2, FileText, Download, LogOut } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import Link from "next/link"
 import AdminLogin from "@/components/admin-login"
@@ -383,14 +383,6 @@ export default function AdminPage() {
               ログアウト
             </Button>
           </CardHeader>
-          <CardContent>
-            <Button variant="outline" asChild className="w-full justify-start">
-              <Link href="/debug-tools" className="flex items-center">
-                <User className="mr-2 h-4 w-4" />
-                学生パスワード確認ツール
-              </Link>
-            </Button>
-          </CardContent>
         </Card>
 
         <Tabs defaultValue="import" onValueChange={setActiveTab}>
@@ -459,6 +451,58 @@ export default function AdminPage() {
                   >
                     <Download className="h-4 w-4 mr-2" />
                     学生データテンプレートをダウンロード
+                  </Button>
+                </div>
+              </CardContent>
+
+              {/* データベース構造チェック */}
+              <CardContent className="border-b pb-4 mb-4">
+                <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
+                  <h4 className="font-medium mb-2 flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 text-yellow-600" />
+                    データベース構造チェック
+                  </h4>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    CSVインポートが失敗する場合は、データベース構造をチェックしてください。
+                  </p>
+                  <Button 
+                    onClick={async () => {
+                      try {
+                        const response = await fetch('/api/fix-database-structure', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' }
+                        })
+                        const result = await response.json()
+                        
+                        if (result.success) {
+                          toast({
+                            title: "データベース構造チェック完了",
+                            description: `学生インポート: ${result.canImportStudents ? '✅ 使用可能' : '❌ 要修正'}, テスト結果インポート: ${result.canImportTestResults ? '✅ 使用可能' : '❌ 要修正'}`,
+                          })
+                          
+                          if (result.recommendations?.length > 0) {
+                            console.log("修正提案:", result.recommendations)
+                          }
+                        } else {
+                          toast({
+                            title: "エラー",
+                            description: result.error || "構造チェックに失敗しました",
+                            variant: "destructive",
+                          })
+                        }
+                      } catch (error) {
+                        toast({
+                          title: "エラー",
+                          description: "構造チェックに失敗しました",
+                          variant: "destructive",
+                        })
+                      }
+                    }}
+                    variant="outline" 
+                    size="sm"
+                  >
+                    <AlertCircle className="h-4 w-4 mr-2" />
+                    データベース構造をチェック
                   </Button>
                 </div>
               </CardContent>

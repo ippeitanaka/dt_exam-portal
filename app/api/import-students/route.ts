@@ -42,7 +42,7 @@ export async function POST(request: Request) {
       // Split by comma, but handle potential quotes
       const columns = row.split(",").map((col) => col.trim().replace(/^"|"$/g, ""))
 
-      if (columns.length >= 4) {
+    if (columns.length >= 4) {
         const [studentId, name, email, password] = columns
 
         students.push({
@@ -53,12 +53,13 @@ export async function POST(request: Request) {
         })
       } else if (columns.length >= 3) {
         // 後方互換性のため、3列の場合は旧形式として処理
-        const [name, studentId, password] = columns
+        const [studentId, name, password] = columns
 
         students.push({
           name,
           student_id: studentId,
           password,
+          email: `${studentId}@example.com`, // デフォルトメール
         })
       }
     }
@@ -68,17 +69,47 @@ export async function POST(request: Request) {
     }
 
     // Insert students into the database
-    const { data, error } = await supabase.from("students").upsert(students, { onConflict: "student_id" }).select()
+    // emailカラムが存在しない場合は、emailフィールドを除外
+    try {
+      const { data, error } = await supabase.from("students").upsert(students, { onConflict: "student_id" }).select()
+      
+      if (error) {
+        // emailカラムが存在しない場合のエラーをチェック
+        if (error.message.includes('email') || error.message.includes('column')) {
+          console.log("emailカラムが存在しないため、emailフィールドを除外して再試行します")
+          const studentsWithoutEmail = students.map(({ email, ...rest }) => rest)
+          
+          const { data: retryData, error: retryError } = await supabase
+            .from("students")
+            .upsert(studentsWithoutEmail, { onConflict: "student_id" })
+            .select()
+          
+          if (retryError) {
+            console.error("Error inserting students (retry):", retryError)
+            return NextResponse.json({ error: retryError.message }, { status: 500 })
+          }
 
-    if (error) {
-      console.error("Error inserting students:", error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
+          return NextResponse.json({
+            success: true,
+            message: `${students.length} students imported successfully (without email field)`,
+          })
+        }
+        
+        console.error("Error inserting students:", error)
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `${students.length} students imported successfully`,
+      })
+    } catch (dbError) {
+      console.error("Database error:", dbError)
+      return NextResponse.json({ 
+        error: "Database operation failed",
+        details: dbError instanceof Error ? dbError.message : String(dbError)
+      }, { status: 500 })
     }
-
-    return NextResponse.json({
-      success: true,
-      message: `${students.length} students imported successfully`,
-    })
   } catch (error) {
     console.error("Import error:", error)
     return NextResponse.json(
