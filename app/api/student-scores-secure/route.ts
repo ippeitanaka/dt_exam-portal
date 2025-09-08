@@ -171,14 +171,11 @@ export async function GET(request: NextRequest) {
         // 対象学生の平均点
         const self = rankMap[studentId]
         if (self) {
-          // scoresWithStats の total_rank と total_score を平均値に置換（総合表示用）
+          // scoresWithStats の total_rank と平均点情報を設定
           for (const s of scoresWithStats) {
             s.total_rank = self.rank
-          }
-          // ダッシュボード表示では latestScore.total_score を平均点として用いるため
-          // 先頭レコードの total_score を平均に差し替える（オリジナル得点は保持したいなら別フィールド推奨）
-          if (scoresWithStats.length > 0) {
-            ;(scoresWithStats[0] as any).total_score = self.avg
+            // 総合順位計算用の平均点を新しいフィールドに保存
+            ;(s as any).overall_average_score = self.avg
           }
         }
       }

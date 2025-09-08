@@ -872,7 +872,7 @@ export default function StudentDashboard({
                   全体順位
                 </div>
                 <div className="mt-2 text-sm">
-                  平均点: {latestScore.total_score?.toFixed(1) || "-"}点
+                  平均点: {(latestScore as TestScoreWithStats).overall_average_score?.toFixed(1) || "-"}点
                 </div>
               </div>
             </CardContent>

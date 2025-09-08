@@ -50,6 +50,7 @@ export type TestScoreWithStats = TestScore & {
   rank: number
   total_rank: number
   avg_rank?: number
+  overall_average_score?: number // 総合順位計算用の平均点
   previous_scores?: {
     section_kanri_change: number
     section_kaibou_change: number
